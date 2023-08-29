@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "mongodemo.py", line 176, in <module>
+    outputs = model(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/unet.py", line 120, in forward
+    skip_connections, encoding = self.encoder(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/encoding.py", line 58, in forward
+    x, skip_connnection = encoding_block(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/encoding.py", line 148, in forward
+    x = self.conv1(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/conv.py", line 79, in forward
+    return self.block(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/container.py", line 217, in forward
+    input = module(input)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/conv.py", line 613, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/conv.py", line 608, in _conv_forward
+    return F.conv3d(
+RuntimeError: Expected 4D (unbatched) or 5D (batched) input to conv3d, but got input of size: [1, 1, 1, 64, 64, 64]
+Exception in thread Thread-2:
+Traceback (most recent call last):
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/threading.py", line 932, in _bootstrap_inner
+    self.run()
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/threading.py", line 870, in run
+    self._target(*self._args, **self._kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/utils/data/_utils/pin_memory.py", line 51, in _pin_memory_loop
+    do_one_step()
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/utils/data/_utils/pin_memory.py", line 28, in do_one_step
+    r = in_queue.get(timeout=MP_STATUS_CHECK_INTERVAL)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/multiprocessing/queues.py", line 116, in get
+    return _ForkingPickler.loads(res)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/multiprocessing/reductions.py", line 307, in rebuild_storage_fd
+    fd = df.detach()
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/multiprocessing/resource_sharer.py", line 57, in detach
+    with _resource_sharer.get_connection(self._id) as conn:
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/multiprocessing/resource_sharer.py", line 87, in get_connection
+    c = Client(address, authkey=process.current_process().authkey)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/multiprocessing/connection.py", line 508, in Client

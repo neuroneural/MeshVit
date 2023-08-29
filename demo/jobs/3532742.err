@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "mongodemo.py", line 146, in <module>
+    outputs = model(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/unet.py", line 122, in forward
+    x = self.decoder(skip_connections, encoding)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/decoding.py", line 61, in forward
+    x = decoding_block(skip_connection, x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/decoding.py", line 139, in forward
+    x = self.conv2(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/unet/conv.py", line 79, in forward
+    return self.block(x)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/container.py", line 217, in forward
+    input = module(input)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/activation.py", line 103, in forward
+    return F.relu(input, inplace=self.inplace)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/functional.py", line 1457, in relu
+    result = torch.relu(input)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 MiB (GPU 0; 31.74 GiB total capacity; 29.10 GiB already allocated; 819.38 MiB free; 29.78 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "mongodemo.py", line 168, in <module>
+    x = downsample_volume(x)
+  File "mongodemo.py", line 156, in downsample_volume
+    downsampled = F.interpolate(volume.squeeze(), size=new_size, mode='trilinear', align_corners=False)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/functional.py", line 3869, in interpolate
+    raise ValueError(
+ValueError: Input and output must have the same number of spatial dimensions, but got input with spatial dimensions of [256] and output size of (64, 64, 64). Please provide input tensor in (N, C, d1, d2, ...,dK) format and output size in (o1, o2, ...,oK) format.
+/opt/slurmnfs/slurmd/lhotse/job3533035/slurm_script: line 27: 872871 Aborted                 (core dumped) python mongodemo.py

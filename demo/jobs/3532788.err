@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemo.py", line 161, in <module>
+    downsampled_x = downsample_volume(x)
+NameError: name 'x' is not defined
