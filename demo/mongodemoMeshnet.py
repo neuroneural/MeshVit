@@ -15,6 +15,9 @@ from mongoslabs.mongoloader import (
     mtransform,
 )
 
+from subvolume.utils import extract_subvolumes
+
+
 
 volume_shape = [256]*3
 subvolume_shape = [32]*3 # if you are sampling subcubes within the
@@ -101,8 +104,8 @@ import json
 
 config_file = 'modelAE.json'
 model = enMesh_checkpoint(in_channels=1,
-            n_classes=104,
-            channels=5,
+            n_classes=104,# 3, 50 or 104 
+            channels=1,
             config_file=config_file)
 
 # Instantiate
@@ -119,22 +122,25 @@ num_epochs = 1  # or however many you want
 model.train()  # set the model to training mode
 import torch.nn.functional as F
 
-def downsample_volume(volume, factor=4):
-    # Calculate the new size
-    new_size = (64,64,64)
+# def downsample_volume(volume):
+#     # Calculate the new size
+#     new_size = (64,64,64)
     
-    # Use trilinear interpolation to downsample
-    downsampled = F.interpolate(volume, size=new_size, mode='trilinear', align_corners=False)
+#     # Use trilinear interpolation to downsample
+#     downsampled = F.interpolate(volume, size=new_size, mode='trilinear', align_corners=False)
     
-    return downsampled
+#     return downsampled
 
-import torch.nn.functional as F
+coordinates = coord_generator.get_coordinates(mode="train")
 
-def upsample_volume(volume, output_size=(256,256,256)):
-    # Use trilinear interpolation to upsample
-    upsampled = F.interpolate(volume, size=output_size, mode='trilinear', align_corners=False)
+#def downsample_volume(volume):
+
+
+# def upsample_volume(volume, output_size=(256,256,256)):
+#     # Use trilinear interpolation to upsample
+#     upsampled = F.interpolate(volume, size=output_size, mode='trilinear', align_corners=False)
     
-    return upsampled
+#     return upsampled
 
 
 
@@ -143,32 +149,35 @@ for epoch in range(num_epochs):
     
     for i, (x, y) in enumerate(tdataloader):
         # Move data to GPU if available
-        x = downsample_volume(x)
-        y = y.float()
-        y =y.unsqueeze(1)
-        y = downsample_volume(y)
-        y = y.squeeze(1)
         x, y = x.cuda(), y.cuda()
         
+        subvolume_size = 128
+
+        subvolumesx = extract_subvolumes(x, subvolume_size)
+        subvolumesy = extract_subvolumes(y, subvolume_size)
         # Forward pass
-        outputs = model(x)
+        for subvolx,subvoly in zip(subvolumesx,subvolumesy):
+            
+            outputs = model(subvolx)
 
-        # Compute loss
-        loss = criterion(outputs, y.long())  # Ensure the target tensor is of type long
+            # Compute loss
+            loss = criterion(outputs, subvoly.long())  # Ensure the target tensor is of type long
 
-        # Backward pass and optimization
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # Backward pass and optimization
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
+            # Print some statistics
+            if (i + 1) % 10 == 0:  # print every 10 batches for example
+                print(f"Batch {i+1}, Loss: {loss.item()}")
+                print(subvolx.shape,subvoly.shape)
+        
         # Print some statistics
         if (i + 1) % 10 == 0:  # print every 10 batches for example
             print(f"Batch {i+1}, Loss: {loss.item()}")
             print(x.shape,y.shape)
-            x = upsample_volume(x)
-            y =y.unsqueeze(1)
-            y = upsample_volume(y)
-            y = y.squeeze(1)
-            print(x.shape,y.shape)
-
+            
         easybar.print_progress(i, len(tdataloader))
+
+

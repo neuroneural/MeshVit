@@ -99,26 +99,40 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
       - accelerate==0.22.0
+      - asttokens==2.2.1
+      - backcall==0.2.0
       - catalyst==22.4
       - click==8.1.7
       - colorama==0.4.6
+      - decorator==5.1.1
       - deprecated==1.2.14
       - dnspython==2.4.2
       - einops==0.6.1
+      - executing==1.2.0
       - fsspec==2023.6.0
       - huggingface-hub==0.16.4
       - humanize==4.8.0
       - hydra-slayer==0.4.1
       - importlib-resources==6.0.1
+      - ipdb==0.13.13
+      - ipython==8.12.2
+      - jedi==0.19.0
       - linformer==0.2.1
       - markdown-it-py==3.0.0
+      - matplotlib-inline==0.1.6
       - mdurl==0.1.2
       - monai==1.2.0
       - mongoslabs==0.0.2
       - nibabel==5.1.0
       - packaging==23.1
+      - parso==0.8.3
+      - pexpect==4.8.0
+      - pickleshare==0.7.5
+      - prompt-toolkit==3.0.39
       - protobuf==4.24.2
       - psutil==5.9.5
+      - ptyprocess==0.7.0
+      - pure-eval==0.2.2
       - pygments==2.16.1
       - pymongo==4.5.0
       - pyyaml==6.0.1
@@ -127,13 +141,18 @@ dependencies:
       - scipy==1.10.1
       - shellingham==1.5.3
       - simpleitk==2.2.1
+      - six==1.16.0
+      - stack-data==0.6.2
       - tensorboardx==2.6.2.2
       - timm==0.9.5
+      - tomli==2.0.1
       - torchio==0.19.1
       - tqdm==4.66.1
+      - traitlets==5.9.0
       - typer==0.9.0
       - unet==0.7.7
       - vit-pytorch==1.4.4
+      - wcwidth==0.2.6
       - wrapt==1.15.0
       - zipp==3.16.2
 prefix: /data/users2/washbee/anaconda3/envs/neurips
