@@ -1,0 +1,7 @@
+Epoch 1/1
+xencoder torch.Size([1, 2, 128])
+masks1 torch.Size([1, 1, 1, 1, 1])
+masks2 torch.Size([1, 1, 32, 32, 32])
+masks3 torch.Size([1, 1, 32, 32, 32])
+min max tensor(0., device='cuda:0') tensor(1., device='cuda:0') tensor(0, device='cuda:0') tensor(103, device='cuda:0') tensor(0., device='cuda:0', grad_fn=<MinBackward1>) tensor(0., device='cuda:0', grad_fn=<MaxBackward1>) tensor(0., device='cuda:0') tensor(0.1146, device='cuda:0') tensor(0, device='cuda:0') tensor(0, device='cuda:0')
+compare torch.Size([1, 1, 32, 32, 32]) torch.Size([1, 32, 32, 32]) torch.Size([1, 256, 256, 256])

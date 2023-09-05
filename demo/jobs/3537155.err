@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 120, in <module>
+    vit = VisionTransformer3d((image_size, patch_size, n_layers), d_model, d_ff, n_cls, 
+TypeError: __init__() missing 3 required positional arguments: 'd_ff', 'n_heads', and 'n_cls'

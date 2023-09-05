@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 132, in <module>
+    decoder = MaskTransformer3d(n_cls, patch_size,d_encoder, n_layers, n_heads, d_model, d_ff, drop_path_rate, dropout)
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/decoder3d.py", line 144, in __init__
+    [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/decoder3d.py", line 144, in <listcomp>
+    [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/blocks.py", line 85, in __init__
+    self.attn = Attention(dim, heads, dropout)
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/blocks.py", line 48, in __init__
+    self.attn_drop = nn.Dropout(dropout)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 15, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'tuple' and 'int'

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 26, in <module>
+    from ..segmenter.segm.model.decoder3d import MaskTransformer3d
+ImportError: attempted relative import with no known parent package
