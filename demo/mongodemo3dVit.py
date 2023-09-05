@@ -109,8 +109,9 @@ tdataloader = BatchPrefetchLoaderWrapper(
 config_file = 'modelAE.json'
 
 device = "cuda"
-image_size = (32,32,32)
-patch_size = 4 
+subvolume_size = 64
+image_size = (subvolume_size,subvolume_size,subvolume_size)
+patch_size = 16 
 n_layers = 12
 d_model = 128
 d_ff = 128
@@ -123,10 +124,7 @@ vit = VisionTransformer3d(image_size, patch_size, n_layers, d_model, d_ff, n_hea
         channels=1)
 
 d_encoder = 128
-#n_layers,
-#n_heads,
-#d_model=128
-#d_ff=128
+#...
 drop_path_rate=0.0
 dropout=0.1
 decoder = MaskTransformer3d(n_cls, patch_size,d_encoder, n_layers, n_heads, d_model, d_ff, drop_path_rate, dropout)
@@ -151,7 +149,7 @@ for epoch in range(num_epochs):
         # Move data to GPU if available
         x, y = x.cuda(), y.cuda()
         
-        subvolume_size = 32
+        
 
         subvolumesx = extract_subvolumes(x, subvolume_size)
         subvolumesy = extract_subvolumes(y, subvolume_size)
@@ -160,35 +158,21 @@ for epoch in range(num_epochs):
             
             outputs = model(subvolx)
 
-            # Compute loss
-            print('min max', torch.min(x),torch.max(x),torch.min(y),torch.max(y),torch.min(outputs), torch.max(outputs),torch.min(subvolx),torch.max(subvolx), torch.min(subvoly), torch.max(subvoly))
-            print('minsubx, maxsubx, minout, maxout', torch.min(subvolx), torch.max(subvolx), torch.min(outputs), torch.max(outputs))
-
             print('compare',outputs.shape,subvoly.long().shape, y.shape)
 
-            indices = torch.nonzero(outputs > 0)
-            indicessubx = torch.nonzero(subvolx > 0)
-            print(f"Size of indicessubx: {indicessubx.size(0)}")
-            print(f"Size of indices: {indices.size(0)}")
-            if indices.size(0)>0:
-                print("!!!")
 
-
-            #exit()
-            #loss = criterion(outputs, subvoly.long())  # Ensure the target tensor is of type long
+            loss = criterion(outputs, subvoly.long())  # Ensure the target tensor is of type long
 
             # Print some statistics
             #if (i + 1) % 10 == 0:  # print every 10 batches for example
-            #print(f"Batch {i+1}, Loss: {loss.item()}")
-            print('subvx,subvy', subvolx.shape,subvoly.shape)
-            #exit()
+            print(f"Batch {i+1}, Loss: {loss.item()}")
             # Backward pass and optimization
-            #optimizer.zero_grad()
-            #loss.backward()
-            #optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
 
-        exit()
+        #exit()
         # Print some statistics
         if (i + 1) % 10 == 0:  # print every 10 batches for example
             print(f"Batch {i+1}, Loss: {loss.item()}")
