@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=testSeg         # Job name
 #SBATCH --nodes=1                      # Number of nodes
-#SBATCH --mem=20G                      # Memory requirement (10 gigs)
+#SBATCH --mem=40G                      # Memory requirement (10 gigs)
 #SBATCH --cpus-per-task=8              # Number of CPUs
 #SBATCH --gres=gpu:V100:1               # Request 1 GPU of type RTX
 #SBATCH --time=1-00:00:00              # Maximum runtime (D-H:MM:SS, here it's set to 2 hours for example)
@@ -22,8 +22,31 @@ sleep 5s
 . /data/users2/washbee/anaconda3/etc/profile.d/conda.sh
 conda activate neurips
 
-# Your commands go here:
-# e.g., python my_script.py
-python mongodemo3dVit.py
 
-sleep 5s
+
+BASE_SEED=12345
+
+# Modify the base seed using the SLURM_ARRAY_ID
+SEED=$((BASE_SEED + SLURM_ARRAY_ID))
+
+# Now use the Python script to generate reproducible random numbers
+SUBVOLUME_SIZE=$(python random_seeded.py $SEED 32 64 128)
+PATCH_SIZE=$(($SUBVOLUME_SIZE / $(python random_seeded.py $SEED 2 4 8 16)))
+N_LAYERS=$(python random_seeded.py $SEED 8 16 32 64 128 256)
+D_MODEL=$(python random_seeded.py $SEED 8 16 32 64 128 256)
+D_FF=$(python random_seeded.py $SEED 8 16 32 64 128 256)
+N_HEADS=$(python random_seeded.py $SEED 8 16 32 64)
+D_ENCODER=$(python random_seeded.py $SEED 8 16 32 64 128 256)
+
+
+echo "SEED SUBVOLUME_SIZE PATCH_SIZE N_LAYERS D_MODEL D_FF N_HEADS D_ENCODER"
+echo $SEED $SUBVOLUME_SIZE $PATCH_SIZE $N_LAYERS $D_MODEL $D_FF $N_HEADS $D_ENCODER
+# Call the Python script with the randomly selected hyperparameters
+python mongodemo3dVit.py \
+  --subvolume_size $SUBVOLUME_SIZE \
+  --patch_size $PATCH_SIZE \
+  --n_layers $N_LAYERS \
+  --d_model $D_MODEL \
+  --d_ff $D_FF \
+  --n_heads $N_HEADS \
+  --d_encoder $D_ENCODER 
