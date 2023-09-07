@@ -1,4 +1,0 @@
-subvolume_size,patch_size,n_layers,d_model,d_ff,n_heads,d_encoder,completed,msg,loss
-64,4,64,64,64,64,64,False,Not Completed,NA
-64,4,64,64,64,64,64,False,Not Completed,NA
-64,4,64,64,64,64,64,False,Not Completed,NA

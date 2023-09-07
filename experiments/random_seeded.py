@@ -8,5 +8,5 @@ if len(sys.argv) < 3:
 seed = int(sys.argv[1])
 values = sys.argv[2:]
 
-random.seed(seed)
+#random.seed(seed)
 print(random.choice(values))

@@ -1,5 +1,5 @@
 import easybar
-
+import numpy as np 
 from catalyst.data import BatchPrefetchLoaderWrapper
 
 from torch.utils.data import DataLoader, Dataset
@@ -34,18 +34,28 @@ import torch.nn.functional as F
 import argparse
 import os
 
-filename = '/data/users2/washbee/MeshVit/experiments/hyperparam.log'
+filename = '/data/users2/washbee/MeshVit/experiments/hyperparamsearch_RTX_.01.log'
 
-def log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, completed, msg,loss):
+def log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, lr, modelsize, completed, msg,loss):
     # Check if the file exists
     if not os.path.exists(filename):
         with open(filename, 'w') as file:
             # Write the header
-            file.write("subvolume_size,patch_size,n_layers,d_model,d_ff,n_heads,d_encoder,completed,msg,loss\n")
+            file.write("subvolume_size,patch_size,n_layers,d_model,d_ff,n_heads,d_encoder,lr,modelsize,completed,msg,loss\n")
     
     # Append the data
     with open(filename, 'a') as file:
-        file.write(f"{subvolume_size},{patch_size},{n_layers},{d_model},{d_ff},{n_heads},{d_encoder},{completed},{msg},{loss}\n")
+        file.write(f"{subvolume_size},{patch_size},{n_layers},{d_model},{d_ff},{n_heads},{d_encoder},{lr},{modelsize},{completed},{msg},{loss}\n")
+
+
+def get_model_memory_size(model):
+    params = sum(p.numel() for p in model.parameters())
+    tensors = [p for p in model.parameters()]
+    
+    float_size = 4  # for float32
+    total_memory = sum([np.prod(t.size()) * float_size for t in tensors])
+    return total_memory / (1024 ** 2)  # convert bytes to megabytes
+
 
 parser = argparse.ArgumentParser(description='Hyperparameters for 3D Vision Transformer')
 parser.add_argument('--subvolume_size', type=int, required=True)
@@ -55,6 +65,7 @@ parser.add_argument('--d_model', type=int, required=True)
 parser.add_argument('--d_ff', type=int, required=True)
 parser.add_argument('--n_heads', type=int, required=True)
 parser.add_argument('--d_encoder', type=int, required=True)
+parser.add_argument('--lr', type=float, required=True)
 
 args = parser.parse_args()
 
@@ -66,6 +77,7 @@ d_model = args.d_model
 d_ff = args.d_ff
 n_heads = args.n_heads
 d_encoder = args.d_encoder
+lr = args.lr
 
 
 
@@ -118,20 +130,33 @@ db = client[DBNAME]
 posts = db[COLLECTION]
 num_examples = int(posts.find_one(sort=[(INDEX_ID, -1)])[INDEX_ID] + 1)
 
-tdataset = MongoDataset(
-    range(num_examples),
+train_size = int(0.8 * num_examples)
+valid_size = int(0.1 * num_examples)
+test_size = num_examples - train_size - valid_size
+
+indices = list(range(num_examples))
+#np.random.shuffle(indices)  # Ensure you import numpy as np
+print('!!!removed stochasticity')
+temp_train_size = int(.01*num_examples)
+#train_indices = indices[:train_size]
+train_indices = indices[:temp_train_size]#change this
+print ("!!!change the above")
+valid_indices = indices[train_size:(train_size + valid_size)]
+test_indices = indices[(train_size + valid_size):]
+
+# For the training set:
+train_dataset = MongoDataset(
+    train_indices,     
     mytransform,
     None,
     id=INDEX_ID,
     fields=VIEWFIELDS,
     )
-tsampler = (
-    MBatchSampler(tdataset, batch_size=1)
-    )
-tdataloader = BatchPrefetchLoaderWrapper(
+train_sampler = MBatchSampler(train_dataset, batch_size=1)
+train_dataloader = BatchPrefetchLoaderWrapper(
     DataLoader(
-        tdataset,
-        sampler=tsampler,
+        train_dataset,
+        sampler=train_sampler,
         collate_fn=mycollate_full, # always fetched full brains without dicing
         pin_memory=True,
         worker_init_fn=createclient,
@@ -143,6 +168,80 @@ tdataloader = BatchPrefetchLoaderWrapper(
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
      )
+valid_dataset = MongoDataset(
+    valid_indices,     
+    mytransform,
+    None,
+    id=INDEX_ID,
+    fields=VIEWFIELDS,
+    )
+valid_sampler = MBatchSampler(valid_dataset, batch_size=1)
+valid_dataloader = BatchPrefetchLoaderWrapper(
+    DataLoader(
+        valid_dataset,
+        sampler=valid_sampler,
+        collate_fn=mycollate_full, # always fetched full brains without dicing
+        pin_memory=True,
+        worker_init_fn=createclient,
+        num_workers=8, # remember your cores and memory are limited, do not
+                       # make this parameter more than you have cores and
+                       # larger than num_prefetches does not make sense either
+        ),
+     num_prefetches=16 # you GPU memory may limit this. This is the number of
+                       # brains that will be fetched to the GPU while it is
+                       # still busy with compute of a previous batch
+     )
+
+test_dataset = MongoDataset(
+    test_indices,     
+    mytransform,
+    None,
+    id=INDEX_ID,
+    fields=VIEWFIELDS,
+    )
+test_sampler = MBatchSampler(test_dataset, batch_size=1)
+test_dataloader = BatchPrefetchLoaderWrapper(
+    DataLoader(
+        test_dataset,
+        sampler=test_sampler,
+        collate_fn=mycollate_full, # always fetched full brains without dicing
+        pin_memory=True,
+        worker_init_fn=createclient,
+        num_workers=8, # remember your cores and memory are limited, do not
+                       # make this parameter more than you have cores and
+                       # larger than num_prefetches does not make sense either
+        ),
+     num_prefetches=16 # you GPU memory may limit this. This is the number of
+                       # brains that will be fetched to the GPU while it is
+                       # still busy with compute of a previous batch
+     )
+
+
+# tdataset = MongoDataset(
+#     range(num_examples),
+#     mytransform,
+#     None,
+#     id=INDEX_ID,
+#     fields=VIEWFIELDS,
+#     )
+# tsampler = (
+#     MBatchSampler(tdataset, batch_size=1)
+#     )
+# tdataloader = BatchPrefetchLoaderWrapper(
+#     DataLoader(
+#         tdataset,
+#         sampler=tsampler,
+#         collate_fn=mycollate_full, # always fetched full brains without dicing
+#         pin_memory=True,
+#         worker_init_fn=createclient,
+#         num_workers=8, # remember your cores and memory are limited, do not
+#                        # make this parameter more than you have cores and
+#                        # larger than num_prefetches does not make sense either
+#         ),
+#      num_prefetches=16 # you GPU memory may limit this. This is the number of
+#                        # brains that will be fetched to the GPU while it is
+#                        # still busy with compute of a previous batch
+#      )
 
 config_file = 'modelAE.json'
 
@@ -156,6 +255,7 @@ image_size = (subvolume_size,subvolume_size,subvolume_size)
 #d_ff = 128
 #n_heads = 8
 n_cls = 104 #per voxel number of classes
+                         #image_size, patch_size, n_layers, d_model, d_ff, n_heads, n_cls,
 vit = VisionTransformer3d(image_size, patch_size, n_layers, d_model, d_ff, n_heads, n_cls, 
         dropout=0.1,
         drop_path_rate=0.0,
@@ -168,26 +268,30 @@ drop_path_rate=0.0
 dropout=0.1
 loss = None
 completed = False
+modelsize = None
 try:
+    #                           n_cls,patch_size,d_encoder,n_layers,n_heads,d_model,d_ff,drop_path_rate,dropout,
     decoder = MaskTransformer3d(n_cls, patch_size,d_encoder, n_layers, n_heads, d_model, d_ff, drop_path_rate, dropout)
     model = Segmenter3d(vit, decoder, n_cls=n_cls).to(device)
-
+    modelsize = get_model_memory_size(model)
+    print("modelsize is ", modelsize)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()  # for segmentation tasks
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     num_epochs = 1  # or however many you want
 
     model.train()  # set the model to training mode
 
     coordinates = coord_generator.get_coordinates(mode="train")
-
+    train_dataloader = test_dataloader##remove this later!!!!!!!!!!!. 
+    print('remove the above line!!!')
     for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}/{num_epochs}")
         
-        for i, (x, y) in enumerate(tdataloader):
+        for i, (x, y) in enumerate(train_dataloader):
             # Move data to GPU if available
             x, y = x.cuda(), y.cuda()
             
@@ -217,11 +321,33 @@ try:
                 print(f"Batch {i+1}, Loss: {loss.item()}")
                 print(x.shape,y.shape)
                 
-            easybar.print_progress(i, len(tdataloader))
+            easybar.print_progress(i, len(train_dataloader))
     
-    
-    log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, True, "Completed", loss.item())
-    completed = True
+    validcount = 0.0
+    validlosstotal=0.0
+    model = model.eval()  # Set the model to evaluation mode
+    with torch.no_grad():
+        for i, (x, y) in enumerate(valid_dataloader):
+                # Move data to GPU if available
+                x, y = x.cuda(), y.cuda()
+                subvolumesx = extract_subvolumes(x, subvolume_size)
+                subvolumesy = extract_subvolumes(y, subvolume_size)
+                # Forward pass
+                for subvolx,subvoly in zip(subvolumesx,subvolumesy):
+                    
+                    outputs = model(subvolx)
+                    validcount+=1.0
+                    loss = criterion(outputs, subvoly.long())  # Ensure the target tensor is of type long
+                    validlosstotal+=loss.item()
+                # Print some statistics
+                if (i + 1) % 10 == 0:  # print every 10 batches for example
+                    print(f"Validation Batch {i+1}, Loss: {loss.item()}")
+                    print(x.shape,y.shape)
+                    
+                easybar.print_progress(i, len(valid_dataloader))
+
+        log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, lr, modelsize, True, "Completed",validlosstotal)
+        completed = True
 
 except torch.cuda.OutOfMemoryError as e:
     print("torch.cuda.OutOfMemoryError caught")
@@ -232,5 +358,6 @@ except BaseException as e:
 finally:
     print("finally")
     if not completed:
-        log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, False, "Not Completed", "NA")
+        log_hyperparams(subvolume_size, patch_size, n_layers, d_model, d_ff, n_heads, d_encoder, lr, modelsize, False, "Not Completed","NA")
+        
     exit()
