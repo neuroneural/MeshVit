@@ -21,7 +21,16 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mongoutil import *
+import torch.nn as nn
 
+import os
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # assuming you want to use GPU 0
+
+torch.backends.cudnn.enabled = True
+torch.backends.cudnn.benchmark = True
+
+    
 args = None
 
 
@@ -31,13 +40,13 @@ def get_loaders(
     random_state: int,
     volume_shape: List[int],
     subvolume_shape: List[int],
-    train_subvolumes: int = 128,
+    train_subvolumes: int = 32,
     infer_subvolumes: int = 256,
     in_csv_train: str = None,
     in_csv_valid: str = None,
     in_csv_infer: str = None,
-    batch_size: int = 16,
-    num_workers: int = 10,
+    batch_size: int = 1,
+    num_workers: int = 4,#changed
 ) -> dict:
     """Get Dataloaders"""
     
@@ -73,6 +82,8 @@ class CustomRunner(Runner):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
+        self.coords_generator = CoordsGenerator(list_shape=[256, 256, 256], list_sub_shape=[32, 32, 32])
+        self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
         """Returns the loaders for a given stage."""
@@ -112,33 +123,41 @@ class CustomRunner(Runner):
         Custom train/ val step that includes batch unpacking, training, and
         DICE metrics
         """
-        
+        if self.criterion == None:
+            self.criterion = nn.CrossEntropyLoss()
         # model train/valid step
         #batch = batch[0]
         x, y = batch#batch["images"].float(), batch["targets"]
+        x = extract_subvolumes(x, self.coords_generator)#.cuda()
+        y = extract_label_subvolumes(y, self.coords_generator).long()#.cuda()
+        
+        for x,y in zip(x,y):
+            if self.is_train_loader:
+                self.optimizer.zero_grad()
 
-        if self.is_train_loader:
-            self.optimizer.zero_grad()
+            y_hat = self.model(x.cuda())
+            import logging
+            logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+            logging.debug(f'yhat: {y_hat.shape}')
+            logging.debug(f'y: {y.shape}')
+            loss = self.criterion(y_hat.cuda(), y.cuda())
 
-        y_hat = self.model(x)
-        loss = F.cross_entropy(y_hat, y)
+            if self.is_train_loader:
+                loss.backward()
+                self.optimizer.step()
+                scheduler.step()
 
-        if self.is_train_loader:
-            loss.backward()
-            self.optimizer.step()
-            scheduler.step()
+            one_hot_targets = (
+                torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
+            )
 
-        one_hot_targets = (
-            torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
-        )
+            logits_softmax = F.softmax(y_hat)
+            macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
 
-        logits_softmax = F.softmax(y_hat)
-        macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
+            self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
 
-        self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
-
-        for key in ["loss", "macro_dice"]:
-            self.meters[key].update(self.batch_metrics[key].item(), self.batch_size)
+            for key in ["loss", "macro_dice"]:
+                self.meters[key].update(self.batch_metrics[key].item(), 1)#self.batch_size)
 
     def on_loader_end(self, runner):
         """
@@ -207,17 +226,17 @@ if __name__ == "__main__":
     #     default="./data/dataset_infer.csv",
     #     help="Path to list with brains for inference",
     # )
-    parser.add_argument("--n_classes", default=31, type=int)
+    parser.add_argument("--n_classes", default=104, type=int)
     parser.add_argument(
         "--train_subvolumes",
-        default=128,
+        default=32,
         type=int,
         metavar="N",
         help="Number of total subvolumes to sample from one brain",
     )
     parser.add_argument(
         "--infer_subvolumes",
-        default=512,
+        default=256,
         type=int,
         metavar="N",
         help="Number of total subvolumes to sample from one brain",
@@ -229,11 +248,11 @@ if __name__ == "__main__":
     parser.add_argument("--sv_d", default=38, type=int, metavar="N", help="Depth of subvolumes")
     parser.add_argument("--model", default="meshnet")
     parser.add_argument(
-        "--dropout", default=0, type=float, metavar="N", help="dropout probability for meshnet",
+        "--dropout", default=0.1, type=float, metavar="N", help="dropout probability for meshnet",
     )
     parser.add_argument("--large", default=False)
     parser.add_argument(
-        "--n_epochs", default=30, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=1, type=int, metavar="N", help="number of total epochs to run",
     )
     parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
@@ -250,7 +269,7 @@ if __name__ == "__main__":
 
     volume_shape = [256, 256, 256]
     #subvolume_shape = [args.sv_h, args.sv_w, args.sv_d]
-    subvolume_shape = [128, 128, 128]
+    subvolume_shape = [32, 32, 32]
     train_loaders, infer_loaders = get_loaders(
         0,
         volume_shape,
@@ -265,9 +284,9 @@ if __name__ == "__main__":
     if args.model == "meshnet":
         net = MeshNet(
             n_channels=1, n_classes=args.n_classes, large=args.large, dropout_p=args.dropout,
-        )
+        ).cuda()
     else:
-        net = UNet(n_channels=1, n_classes=args.n_classes)
+        net = UNet(n_channels=1, n_classes=args.n_classes).cuda()
 
     logdir = "logs/{model}_gmwm".format(model=args.model)
     if args.large:
@@ -278,7 +297,7 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(net.parameters(), lr=0.02)
     scheduler = OneCycleLR(
-        optimizer, max_lr=0.02, epochs=args.n_epochs, steps_per_epoch=len(train_loaders["train"]),
+        optimizer, max_lr=0.02, epochs=1, steps_per_epoch=(int)(len(train_loaders["train"]) * (256**3//32**3)),
     )
 
     runner = CustomRunner(n_classes=args.n_classes)
