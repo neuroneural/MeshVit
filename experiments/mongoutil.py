@@ -81,14 +81,11 @@ def getMongoLoaders():
 
     indices = list(range(num_examples))
     #np.random.shuffle(indices)  # Ensure you import numpy as np
-    print('!!!removed stochasticity')
-    temp_train_size = int(.001*num_examples)
-    temp_valid_size = int(.001*num_examples)
-    #train_indices = indices[:train_size]
-    train_indices = indices[:temp_train_size]#change this
-    print ("!!!change the above")
-    valid_indices = indices[train_size:(train_size + temp_valid_size)] ##change back from temp!!!
-    print("change back from temp!!!")
+    #print('!!!removed stochasticity')
+    #temp_train_size = int(.001*num_examples)
+    #temp_valid_size = int(.001*num_examples)
+    train_indices = indices[:train_size]
+    valid_indices = indices[train_size:(train_size + valid_size)] ##change back from temp!!!
     test_indices = indices[(train_size + valid_size):]
 
     # For the training set:

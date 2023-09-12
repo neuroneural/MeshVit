@@ -2,13 +2,14 @@ from typing import List
 import argparse
 import collections
 from collections import OrderedDict
-
+from custom_checkpoint_callback import CustomCheckpointCallback
 from brain_dataset import BrainDataset
 from catalyst import metrics
 from catalyst.callbacks import CheckpointCallback
 from catalyst.contrib.utils.pandas import dataframe_to_list
 from catalyst.data import BatchPrefetchLoaderWrapper, ReaderCompose
-from catalyst.dl import Runner
+from catalyst.dl import Runner, SchedulerCallback
+
 from catalyst.metrics.functional._segmentation import dice
 from model import MeshNet, UNet
 import nibabel as nib
@@ -17,18 +18,18 @@ import pandas as pd
 from reader import TensorFixedVolumeNiftiReader, TensorNiftiReader
 import torch
 from torch.nn import functional as F
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mongoutil import *
 import torch.nn as nn
 
 import os
-os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # assuming you want to use GPU 0
+# os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # assuming you want to use GPU 0
 
-torch.backends.cudnn.enabled = True
-torch.backends.cudnn.benchmark = True
+# torch.backends.cudnn.enabled = True
+# torch.backends.cudnn.benchmark = True
 
     
 args = None
@@ -82,6 +83,7 @@ class CustomRunner(Runner):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
+        self.epoch = 0
         self.coords_generator = CoordsGenerator(list_shape=[256, 256, 256], list_sub_shape=[32, 32, 32])
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
 
@@ -95,10 +97,10 @@ class CustomRunner(Runner):
         Predicts a batch for an inference dataloader and returns the
         predictions as well as the corresponding slice indices
         """
-        import logging
+        # import logging
         
-        logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-        logging.debug(f'batch: {batch}, type: {type(batch)}')
+        # logging.basicConfig(filename='debug.log', level=logging.DEBUG)
+        # logging.debug(f'batch: {batch}, type: {type(batch)}')
         
         # model inference step
         batch = batch[0]
@@ -106,6 +108,19 @@ class CustomRunner(Runner):
             self.model(batch["images"].float().to(self.device)),
             batch["coords"],
         )
+
+    def on_epoch_end(self, runner):
+        """
+        Calls scheduler step after an epoch ends using validation dice score
+        """
+        if runner.loader_key == "valid":  # Checking if it's the validation phase
+            print('validation phase and scheduler step update')
+            dice_score = self.loader_metrics.get('macro_dice', None)
+            print('validation dice_score', dice_score)
+            if dice_score is not None:
+                self.scheduler.step(dice_score)
+            super().on_epoch_end(runner)
+
 
     def on_loader_start(self, runner):
         """
@@ -136,24 +151,31 @@ class CustomRunner(Runner):
                 self.optimizer.zero_grad()
 
             y_hat = self.model(x.cuda())
-            import logging
-            logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-            logging.debug(f'yhat: {y_hat.shape}')
-            logging.debug(f'y: {y.shape}')
+            # import logging
+            # logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+            # logging.debug(f'yhat: {y_hat.shape}')
+            # logging.debug(f'y: {y.shape}')
             loss = self.criterion(y_hat.cuda(), y.cuda())
 
-            if self.is_train_loader:
-                loss.backward()
-                self.optimizer.step()
-                scheduler.step()
+            
 
             one_hot_targets = (
                 torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
             )
 
+            if self.is_train_loader:
+                loss.backward()
+                self.optimizer.step()
+            
             logits_softmax = F.softmax(y_hat)
             macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
 
+            # import logging
+            # logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+            # logging.debug(f'macro_dice: {macro_dice}')
+            # if self.is_train_loader:
+            #     scheduler.step(-macro_dice)#change to validation set. 
+            
             self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
 
             for key in ["loss", "macro_dice"]:
@@ -252,7 +274,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--large", default=False)
     parser.add_argument(
-        "--n_epochs", default=1, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=5, type=int, metavar="N", help="number of total epochs to run",
     )
     parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
@@ -282,10 +304,12 @@ if __name__ == "__main__":
     )
 
     if args.model == "meshnet":
+        print('creating meshnet.')
         net = MeshNet(
             n_channels=1, n_classes=args.n_classes, large=args.large, dropout_p=args.dropout,
         ).cuda()
     else:
+        print('creating unet')
         net = UNet(n_channels=1, n_classes=args.n_classes).cuda()
 
     logdir = "logs/{model}_gmwm".format(model=args.model)
@@ -295,10 +319,10 @@ if __name__ == "__main__":
     if args.dropout:
         logdir += "_dropout"
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.02)
-    scheduler = OneCycleLR(
-        optimizer, max_lr=0.02, epochs=1, steps_per_epoch=(int)(len(train_loaders["train"]) * (256**3//32**3)),
-    )
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+    
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
+
 
     runner = CustomRunner(n_classes=args.n_classes)
     runner.train(
@@ -307,50 +331,12 @@ if __name__ == "__main__":
         loaders=train_loaders,
         num_epochs=args.n_epochs,
         scheduler=scheduler,
-        callbacks=[CheckpointCallback(logdir=logdir)],
+        callbacks=[CustomCheckpointCallback(
+            metric_name="macro_dice", 
+            minimize_metric=False, 
+            save_n_best=5, 
+            logdir=logdir)
+                   ],
         logdir=logdir,
         verbose=True,
     )
-
-    segmentations = {}
-    for subject in range(infer_loaders["infer"].dataset.subjects):
-        segmentations[subject] = torch.zeros(
-            tuple(np.insert(volume_shape, 0, args.n_classes)), dtype=torch.uint8,
-        )
-
-    segmentations = voxel_majority_predict_from_subvolumes(
-        infer_loaders["infer"], args.n_classes, segmentations
-    )
-    subject_metrics = []
-    for subject, subject_data in enumerate(tqdm(infer_loaders["infer"].dataset.data)):
-        seg_labels = nib.load(subject_data["nii_labels"]).get_fdata()
-        segmentation_labels = torch.nn.functional.one_hot(
-            torch.from_numpy(seg_labels).to(torch.int64), args.n_classes
-        )
-
-        inference_dice = (
-            dice(
-                torch.nn.functional.one_hot(segmentations[subject], args.n_classes).permute(
-                    0, 3, 1, 2
-                ),
-                segmentation_labels.permute(0, 3, 1, 2),
-            )
-            .detach()
-            .numpy()
-        )
-        macro_inference_dice = (
-            dice(
-                torch.nn.functional.one_hot(segmentations[subject], args.n_classes).permute(
-                    0, 3, 1, 2
-                ),
-                segmentation_labels.permute(0, 3, 1, 2),
-                mode="macro",
-            )
-            .detach()
-            .numpy()
-        )
-        subject_metrics.append((inference_dice, macro_inference_dice))
-
-    per_class_df = pd.DataFrame([metric[0] for metric in subject_metrics])
-    macro_df = pd.DataFrame([metric[1] for metric in subject_metrics])
-    print(per_class_df, macro_df)
