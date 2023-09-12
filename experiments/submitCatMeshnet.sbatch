@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=catMNWS         # Job name
 #SBATCH --nodes=1                      # Number of nodes
-#SBATCH --mem=20G                      # Memory requirement (10 gigs)
+#SBATCH --mem=32G                      # Memory requirement (10 gigs)
 #SBATCH --cpus-per-task=4              # Number of CPUs
 #SBATCH --gres=gpu:V100:1               # Request 1 GPU of type RTX
 #SBATCH --time=4-00:00:00              # Maximum runtime (D-H:MM:SS, here it's set to 2 hours for example)
@@ -14,7 +14,7 @@
 #SBATCH --mail-user=washbee1@student.gsu.edu
 #SBATCH --oversubscribe
 
-#--exclude=arctrdgn002,arctrddgx001
+#SBATCH --exclude=arctrdgn001
 sleep 5s
 
 # Activate conda environment using the specific path

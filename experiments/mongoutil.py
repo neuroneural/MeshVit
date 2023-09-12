@@ -16,8 +16,6 @@ class MongoDataLoader:
     colname = 'MRNslabs'
     mongohost = 'arctrdcn018.rs.gsu.edu'
     index_id = 'subject'
-    batch_size = 1
-    batched_subjs = 1
     LABELNOW = ["sublabel", "gwmlabel", "50label"]
 
     def __init__(self, labelnow_choice=0):
@@ -33,7 +31,8 @@ class MongoDataLoader:
     def mtransform_wrapper(self, x):
         return mtransform(x, label=self.LABELNOW[self.labelnow_choice])
 
-    def get_mongo_loaders(self):
+    def get_mongo_loaders(self, batch_size, num_workers):
+
         client = MongoClient("mongodb://" + self.mongohost + ":27017")
         db = client[self.dbname]
         posts = db[self.colname]
@@ -55,14 +54,15 @@ class MongoDataLoader:
             id=self.index_id,
             fields=self.view_fields,
         )
-        train_sampler = MBatchSampler(train_dataset, batch_size=1)
+        train_sampler = MBatchSampler(train_dataset, batch_size=batch_size)
         train_loader = DataLoader(
             train_dataset,
             sampler=train_sampler,
             collate_fn=self.mcollate_full,
             pin_memory=True,
             worker_init_fn=self.create_client_wrapper,
-            num_workers=4,
+            num_workers=num_workers,
+            batch_size=batch_size
         )
 
         valid_dataset = MongoDataset(
@@ -72,14 +72,15 @@ class MongoDataLoader:
             id=self.index_id,
             fields=self.view_fields,
         )
-        valid_sampler = MBatchSampler(valid_dataset, batch_size=1)
+        valid_sampler = MBatchSampler(valid_dataset, batch_size=batch_size)
         valid_loader = DataLoader(
             valid_dataset,
             sampler=valid_sampler,
             collate_fn=self.mcollate_full,
             pin_memory=True,
             worker_init_fn=self.create_client_wrapper,
-            num_workers=4,
+            num_workers=num_workers,
+            batch_size=batch_size
         )
 
         test_dataset = MongoDataset(
@@ -89,57 +90,20 @@ class MongoDataLoader:
             id=self.index_id,
             fields=self.view_fields,
         )
-        test_sampler = MBatchSampler(test_dataset, batch_size=1)
+        test_sampler = MBatchSampler(test_dataset, batch_size=batch_size)
         test_loader = DataLoader(
             test_dataset,
             sampler=test_sampler,
             collate_fn=self.mcollate_full,
             pin_memory=True,
             worker_init_fn=self.create_client_wrapper,
-            num_workers=4,
+            num_workers=num_workers,
+            batch_size=batch_size
         )
 
         return train_loader, valid_loader, test_loader
 
-    def get_mongo_dataset(self):
-        client = MongoClient("mongodb://" + self.mongohost + ":27017")
-        db = client[self.dbname]
-        posts = db[self.colname]
-        num_examples = int(posts.find_one(sort=[(self.index_id, -1)])[self.index_id] + 1)
-
-        temp_train_size = int(0.001 * num_examples)
-        temp_valid_size = int(0.001 * num_examples)
-
-        indices = list(range(num_examples))
-        train_indices = indices[:temp_train_size]
-        valid_indices = indices[train_size:(train_size + temp_valid_size)]
-        test_indices = indices[(train_size + valid_size):]
-
-        train_dataset = MongoDataset(
-            train_indices,
-            self.mtransform_wrapper,
-            posts,
-            id=self.index_id,
-            fields=self.view_fields,
-        )
-
-        valid_dataset = MongoDataset(
-            valid_indices,
-            self.mtransform_wrapper,
-            posts,
-            id=self.index_id,
-            fields=self.view_fields,
-        )
-
-        test_dataset = MongoDataset(
-            test_indices,
-            self.mtransform_wrapper,
-            posts,
-            id=self.index_id,
-            fields=self.view_fields,
-        )
-
-        return train_dataset, valid_dataset, test_dataset
+    # Rest of the class remains the same
 
     @staticmethod
     def extract_subvolumes(tensor, coord_generator):

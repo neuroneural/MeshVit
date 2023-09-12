@@ -39,7 +39,7 @@ args = None
 
 
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(labelnow_choice=0)  # Change labelnow_choice as needed
+loader = MongoDataLoader(labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 
@@ -50,35 +50,31 @@ def get_loaders(
     random_state: int,
     volume_shape: List[int],
     subvolume_shape: List[int],
-    train_subvolumes: int = 32,
-    infer_subvolumes: int = 256,
-    in_csv_train: str = None,
-    in_csv_valid: str = None,
-    in_csv_infer: str = None,
-    batch_size: int = 1,
-    num_workers: int = 4,#changed
+    train_subvolumes: int,
+    infer_subvolumes: int,
+    batch_size: int,  # Add a batch_size parameter with a default value
+    num_workers: int,
 ) -> dict:
     """Get Dataloaders"""
-    
     
     train_loaders = collections.OrderedDict()
     infer_loaders = collections.OrderedDict()
     
-    # Call the get_mongo_loaders method to get the DataLoader instances
-    train_loader, valid_loader, test_loader = loader.get_mongo_loaders()
+    # Call the get_mongo_loaders method to get the DataLoader instances with the specified batch size
+    train_loader, valid_loader, test_loader = loader.get_mongo_loaders(batch_size=batch_size, num_workers=num_workers)
     
     
     train_loaders["train"] = BatchPrefetchLoaderWrapper(train_loader,
-     num_prefetches=16 )# you GPU memory may limit this. This is the number of
+     num_prefetches=4 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
                        
     train_loaders["valid"] = BatchPrefetchLoaderWrapper(valid_loader,
-     num_prefetches=16 )# you GPU memory may limit this. This is the number of
+     num_prefetches=4 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
     infer_loaders["infer"] = BatchPrefetchLoaderWrapper(test_loader,
-     num_prefetches=16 )# you GPU memory may limit this. This is the number of
+     num_prefetches=4 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
 
@@ -88,17 +84,15 @@ def get_loaders(
 class CustomRunner(Runner):
     """Custom Runner for demonstrating a NeuroImaging Pipeline"""
 
-    def __init__(self, n_classes: int, coords_generator: CoordsGenerator = None):
+    def __init__(self, n_classes: int, coords_generator: CoordsGenerator, batch_size: int):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
         self.epoch = 0
-        if coords_generator is None:
-            self.coords_generator = CoordsGenerator(list_shape=[256, 256, 256], list_sub_shape=[32, 32, 32])
-        else:
-            self.coords_generator = coords_generator
+        self.coords_generator = coords_generator
 
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
+        self.batch_size = batch_size  # Store the batch size
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
         """Returns the loaders for a given stage."""
@@ -147,14 +141,13 @@ class CustomRunner(Runner):
         """
         if self.criterion == None:
             self.criterion = nn.CrossEntropyLoss()
-        # model train/valid step
-        #batch = batch[0]
-        x, y = batch#batch["images"].float(), batch["targets"]
-        #x = extract_subvolumes(x, self.coords_generator)#.cuda()
-        x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
-        y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()#.cuda()
         
-        for x,y in zip(x,y):
+        # Modify the batch size to use the one passed from get_loaders
+        x, y = batch  # Assuming that the batch contains a tuple (x, y)
+        x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
+        y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()
+
+        for x, y in zip(x, y):
             if self.is_train_loader:
                 self.optimizer.zero_grad()
 
@@ -168,14 +161,14 @@ class CustomRunner(Runner):
             if self.is_train_loader:
                 loss.backward()
                 self.optimizer.step()
-            
+
             logits_softmax = F.softmax(y_hat)
             macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
-            
+
             self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
 
             for key in ["loss", "macro_dice"]:
-                self.meters[key].update(self.batch_metrics[key].item(), 1)#self.batch_size)
+                self.meters[key].update(self.batch_metrics[key].item(), self.batch_size)
 
     def on_loader_end(self, runner):
         """
@@ -226,10 +219,12 @@ def get_model_memory_size(model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
-    parser.add_argument("--n_classes", default=104, type=int)
+    parser.add_argument("--n_classes", default=3, type=int)
+    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--num_workers", default=4, type=int)
     parser.add_argument(
         "--train_subvolumes",
-        default=128,
+        default=64,
         type=int,
         metavar="N",
         help="Number of total subvolumes to sample from one brain",
@@ -276,9 +271,8 @@ if __name__ == "__main__":
         subvolume_shape,
         args.train_subvolumes,
         args.infer_subvolumes,
-        "",
-        "",
-        "",#TODO: CLEANUP 
+        batch_size=args.batch_size,
+        num_workers=args.num_workers
     )
 
     if args.model == "meshnet":
@@ -306,7 +300,9 @@ if __name__ == "__main__":
     runner = CustomRunner(n_classes=args.n_classes, 
             coords_generator = CoordsGenerator(
                 list_shape=[256, 256, 256],
-                list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]))
+                list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
+                batch_size=args.batch_size
+            )
     runner.train(
         model=net,
         optimizer=optimizer,
