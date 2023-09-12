@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mongoutil import *
 import torch.nn as nn
+from mongoutil import MongoDataLoader
 
 import os
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -35,6 +36,14 @@ import os
 args = None
 
 
+
+
+# Create an instance of MongoDataLoader with your desired labelnow_choice
+loader = MongoDataLoader(labelnow_choice=0)  # Change labelnow_choice as needed
+
+
+
+# Now you can use train_loader, valid_loader, and test_loader as needed
 
 
 def get_loaders(
@@ -55,8 +64,8 @@ def get_loaders(
     train_loaders = collections.OrderedDict()
     infer_loaders = collections.OrderedDict()
     
-    train_loader, valid_loader, test_loader = getMongoLoaders()
-    
+    # Call the get_mongo_loaders method to get the DataLoader instances
+    train_loader, valid_loader, test_loader = loader.get_mongo_loaders()
     
     
     train_loaders["train"] = BatchPrefetchLoaderWrapper(train_loader,
@@ -79,12 +88,16 @@ def get_loaders(
 class CustomRunner(Runner):
     """Custom Runner for demonstrating a NeuroImaging Pipeline"""
 
-    def __init__(self, n_classes: int):
+    def __init__(self, n_classes: int, coords_generator: CoordsGenerator = None):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
         self.epoch = 0
-        self.coords_generator = CoordsGenerator(list_shape=[256, 256, 256], list_sub_shape=[32, 32, 32])
+        if coords_generator is None:
+            self.coords_generator = CoordsGenerator(list_shape=[256, 256, 256], list_sub_shape=[32, 32, 32])
+        else:
+            self.coords_generator = coords_generator
+
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
@@ -97,12 +110,6 @@ class CustomRunner(Runner):
         Predicts a batch for an inference dataloader and returns the
         predictions as well as the corresponding slice indices
         """
-        # import logging
-        
-        # logging.basicConfig(filename='debug.log', level=logging.DEBUG)
-        # logging.debug(f'batch: {batch}, type: {type(batch)}')
-        
-        # model inference step
         batch = batch[0]
         return (
             self.model(batch["images"].float().to(self.device)),
@@ -143,21 +150,16 @@ class CustomRunner(Runner):
         # model train/valid step
         #batch = batch[0]
         x, y = batch#batch["images"].float(), batch["targets"]
-        x = extract_subvolumes(x, self.coords_generator)#.cuda()
-        y = extract_label_subvolumes(y, self.coords_generator).long()#.cuda()
+        #x = extract_subvolumes(x, self.coords_generator)#.cuda()
+        x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
+        y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()#.cuda()
         
         for x,y in zip(x,y):
             if self.is_train_loader:
                 self.optimizer.zero_grad()
 
             y_hat = self.model(x.cuda())
-            # import logging
-            # logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-            # logging.debug(f'yhat: {y_hat.shape}')
-            # logging.debug(f'y: {y.shape}')
             loss = self.criterion(y_hat.cuda(), y.cuda())
-
-            
 
             one_hot_targets = (
                 torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
@@ -169,12 +171,6 @@ class CustomRunner(Runner):
             
             logits_softmax = F.softmax(y_hat)
             macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
-
-            # import logging
-            # logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-            # logging.debug(f'macro_dice: {macro_dice}')
-            # if self.is_train_loader:
-            #     scheduler.step(-macro_dice)#change to validation set. 
             
             self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
 
@@ -230,28 +226,10 @@ def get_model_memory_size(model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
-    # parser.add_argument(
-    #     "--train_path",
-    #     metavar="PATH",
-    #     default="./data/dataset_train.csv",
-    #     help="Path to list with brains for training",
-    # )
-    # parser.add_argument(
-    #     "--validation_path",
-    #     metavar="PATH",
-    #     default="./data/dataset_valid.csv",
-    #     help="Path to list with brains for validation",
-    # )
-    # parser.add_argument(
-    #     "--inference_path",
-    #     metavar="PATH",
-    #     default="./data/dataset_infer.csv",
-    #     help="Path to list with brains for inference",
-    # )
     parser.add_argument("--n_classes", default=104, type=int)
     parser.add_argument(
         "--train_subvolumes",
-        default=32,
+        default=128,
         type=int,
         metavar="N",
         help="Number of total subvolumes to sample from one brain",
@@ -291,7 +269,7 @@ if __name__ == "__main__":
 
     volume_shape = [256, 256, 256]
     #subvolume_shape = [args.sv_h, args.sv_w, args.sv_d]
-    subvolume_shape = [32, 32, 32]
+    subvolume_shape = [args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]
     train_loaders, infer_loaders = get_loaders(
         0,
         volume_shape,
@@ -319,12 +297,16 @@ if __name__ == "__main__":
     if args.dropout:
         logdir += "_dropout"
 
+    logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
 
 
-    runner = CustomRunner(n_classes=args.n_classes)
+    runner = CustomRunner(n_classes=args.n_classes, 
+            coords_generator = CoordsGenerator(
+                list_shape=[256, 256, 256],
+                list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]))
     runner.train(
         model=net,
         optimizer=optimizer,
