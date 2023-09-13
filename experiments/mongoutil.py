@@ -13,15 +13,16 @@ import torch
 
 class MongoDataLoader:
     dbname = 'MindfulTensors'
-    colname = 'MRNslabs'
+    #colname = 'MRNslabs'
     mongohost = 'arctrdcn018.rs.gsu.edu'
     index_id = 'subject'
     LABELNOW = ["sublabel", "gwmlabel", "50label"]
 
-    def __init__(self, labelnow_choice=0):
+    def __init__(self, labelnow_choice=0,colname="HCP"):
         self.labelnow_choice = labelnow_choice
         self.view_fields = ['subdata', self.LABELNOW[labelnow_choice], 'id', 'subject']
-
+        self.colname=colname
+    
     def create_client_wrapper(self, x):
         return create_client(x, dbname=self.dbname, colname=self.colname, mongohost=self.mongohost)
 

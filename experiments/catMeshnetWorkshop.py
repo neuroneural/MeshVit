@@ -54,6 +54,7 @@ def get_loaders(
     infer_subvolumes: int,
     batch_size: int,  # Add a batch_size parameter with a default value
     num_workers: int,
+    colname: str
 ) -> dict:
     """Get Dataloaders"""
     
@@ -247,7 +248,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--large", default=False)
     parser.add_argument(
-        "--n_epochs", default=5, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=20, type=int, metavar="N", help="number of total epochs to run",
     )
     parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
@@ -272,7 +273,8 @@ if __name__ == "__main__":
         args.train_subvolumes,
         args.infer_subvolumes,
         batch_size=args.batch_size,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
+        colname='HCP'
     )
 
     if args.model == "meshnet":
@@ -295,7 +297,6 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
-
 
     runner = CustomRunner(n_classes=args.n_classes, 
             coords_generator = CoordsGenerator(

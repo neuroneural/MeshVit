@@ -20,7 +20,7 @@ import sys
 sys.path.append('/data/users2/washbee/MeshVit') #change this path
 import torch
 import torch.nn as nn
-    
+
 from meshnet import enMesh_checkpoint, enMesh
 import json
 
@@ -164,7 +164,7 @@ train_dataloader = BatchPrefetchLoaderWrapper(
         collate_fn=mycollate_full, # always fetched full brains without dicing
         pin_memory=True,
         worker_init_fn=createclient,
-        num_workers=4, # remember your cores and memory are limited, do not
+        num_workers=8, # remember your cores and memory are limited, do not
                        # make this parameter more than you have cores and
                        # larger than num_prefetches does not make sense either
         ),
@@ -187,7 +187,7 @@ valid_dataloader = BatchPrefetchLoaderWrapper(
         collate_fn=mycollate_full, # always fetched full brains without dicing
         pin_memory=True,
         worker_init_fn=createclient,
-        num_workers=4, # remember your cores and memory are limited, do not
+        num_workers=8, # remember your cores and memory are limited, do not
                        # make this parameter more than you have cores and
                        # larger than num_prefetches does not make sense either
         ),
@@ -211,7 +211,7 @@ test_dataloader = BatchPrefetchLoaderWrapper(
         collate_fn=mycollate_full, # always fetched full brains without dicing
         pin_memory=True,
         worker_init_fn=createclient,
-        num_workers=4, # remember your cores and memory are limited, do not
+        num_workers=8, # remember your cores and memory are limited, do not
                        # make this parameter more than you have cores and
                        # larger than num_prefetches does not make sense either
         ),
