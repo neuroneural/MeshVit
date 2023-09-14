@@ -1,226 +1,270 @@
-# MeshVit
-(Dilated) Vision Transformer for Gray/White Matter Segmentation
+# Segmenter: Transformer for Semantic Segmentation
 
-# neuro_monai_sbatch.sh
+![Figure 1 from paper](./overview.png)
 
-This script:
+[Segmenter: Transformer for Semantic Segmentation](https://arxiv.org/abs/2105.05633)
+by Robin Strudel*, Ricardo Garcia*, Ivan Laptev and Cordelia Schmid, ICCV 2021.
 
-- Specifies Slurm job parameters (job name, outputs, allocated resources, etc.)
-- Activates a Conda environment named `neuro`
-- Sets library paths
-- Runs a python script (`minimal_monai_torchio_example.py`) with specified parameters
+*Equal Contribution
 
-# neuro_monai_sbatch_meshnet.sh
+🔥 **Segmenter is now available on [MMSegmentation](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/segmenter).**
 
-## MeshNet Training
+## Installation
 
-- **Platform**: Slurm cluster
-- **Compute**: v100 GPUs, High Memory Nodes
-- **Framework**: Conda with `neuro` environment
-- **Codebase**: Python, utilizing `minimal_monai_torchio_example.py`
-- **Dataset**: Located within `./data/afedorov_T1_c_atlas_data/`
+Define os environment variables pointing to your checkpoint and dataset directory, put in your `.bashrc`:
+```sh
+export DATASET=/path/to/dataset/dir
+```
 
-# neuro_mongo_sbatch.sh
+Install [PyTorch 1.9](https://pytorch.org/) then `pip install .` at the root of this repository.
 
-## Vit3D Training Workflow
+To download ADE20K, use the following command:
+```python
+python -m segm.scripts.prepare_ade20k $DATASET
+```
 
-- **Platform**: Slurm cluster
-- **Compute**: v100 GPUs, High Memory Nodes
-- **Environment**: Managed via Conda, specifically the `neuro` environment.
-- **Project Root**: `/data/users2/bbaker/projects/MeshVit/neuro2`
-- **Logging**: Slurm logs stored in `/data/users2/bbaker/projects/MeshVit/slurm/` with error and output streams separated.
-- **Notifications**: Emails sent to `bbaker43@gsu.edu` on all job events.
-- **Script Execution**: Using the Python script `minimal_mongo.py` in the `training` directory.
-  - **Model**: `segmenter`
-  - **Epochs**: Short runs of 10 epochs for quick iteration and testing.
-  - **Classes**: 3 class segmentation.
-  - **Logging & Results**: Stored under `../vit3d_results/`.
-- **Dataset Configuration**: Custom subvolume and patch sizes set for dataset processing (`tsv`, `sv`, `ps`).
+## Model Zoo
+We release models with a Vision Transformer backbone initialized from the [improved ViT](https://arxiv.org/abs/2106.10270) models.
 
-Developer Notes:
-- Utilizing Conda for environment management ensures consistent dependency versions across runs.
-- Slurm configuration allows leveraging GPU resources and simplifying parallel execution.
-- Emphasis on monitoring via email notifications and dedicated logging to keep a tab on training progress and issues.
+### ADE20K
 
-# neuro_mongo_sbatch_meshnet.sh  
+Segmenter models with ViT backbone:
+<table>
+  <tr>
+    <th>Name</th>
+    <th>mIoU (SS/MS)</th>
+    <th># params</th>
+    <th>Resolution</th>
+    <th>FPS</th>
+    <th colspan="3">Download</th>
+  </tr>
+<tr>
+    <td>Seg-T-Mask/16</td>
+    <td>38.1 / 38.8</td>
+    <td>7M</td>
+    <td>512x512</td>
+    <td>52.4</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_tiny_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_tiny_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_tiny_mask/log.txt">log</a></td>
+  </tr>
+<tr>
+    <td>Seg-S-Mask/16</td>
+    <td>45.3 / 46.9</td>
+    <td>27M</td>
+    <td>512x512</td>
+    <td>34.8</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_small_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_small_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_small_mask/log.txt">log</a></td>
+  </tr>
+<tr>
+    <td>Seg-B-Mask/16</td>
+    <td>48.5 / 50.0</td>
+    <td>106M</td>
+    <td>512x512</td>
+    <td>24.1</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_mask/log.txt">log</a></td>
+  </tr>
+<tr>
+    <td>Seg-B/8</td>
+    <td>49.5 / 50.5</td>
+    <td>89M</td>
+    <td>512x512</td>
+    <td>4.2</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_patch8/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_patch8/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_patch8/log.txt">log</a></td>
+  </tr>
+<tr>
+    <td>Seg-L-Mask/16</td>
+    <td>51.8 / 53.6</td>
+    <td>334M</td>
+    <td>640x640</td>
+    <td>-</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_large_mask_640/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_large_mask_640/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_large_mask_640/log.txt">log</a></td>
+  </tr>
+</table>
+
+Segmenter models with DeiT backbone:
+<table>
+  <tr>
+    <th>Name</th>
+    <th>mIoU (SS/MS)</th>
+    <th># params</th>
+    <th>Resolution</th>
+    <th>FPS</th>
+    <th colspan="3">Download</th>
+  </tr>
+<tr>
+    <td>Seg-B<span>&#8224;</span>/16</td>
+    <td>47.1 / 48.1</td>
+    <td>87M</td>
+    <td>512x512</td>
+    <td>27.3</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_linear/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_linear/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_linear/log.txt">log</a></td>
+  </tr>
+<tr>
+    <td>Seg-B<span>&#8224;</span>-Mask/16</td>
+    <td>48.7 / 50.1</td>
+    <td>106M</td>
+    <td>512x512</td>
+    <td>24.1</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/ade20k/seg_base_deit_mask/log.txt">log</a></td>
+
+  </tr>
+</table>
+
+### Pascal Context
+<table>
+  <tr>
+    <th>Name</th>
+    <th>mIoU (SS/MS)</th>
+    <th># params</th>
+    <th>Resolution</th>
+    <th>FPS</th>
+    <th colspan="3">Download</th>
+  </tr>
+<tr>
+    <td>Seg-L-Mask/16</td>
+    <td>58.1 / 59.0</td>
+    <td>334M</td>
+    <td>480x480</td>
+    <td>-</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/pascal_context/seg_large_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/pascal_context/seg_large_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/pascal_context/seg_large_mask/log.txt">log</a></td>
+  </tr>
+</table>
+
+### Cityscapes
+<table>
+  <tr>
+    <th>Name</th>
+    <th>mIoU (SS/MS)</th>
+    <th># params</th>
+    <th>Resolution</th>
+    <th>FPS</th>
+    <th colspan="3">Download</th>
+  </tr>
+<tr>
+    <td>Seg-L-Mask/16</td>
+    <td>79.1 / 81.3</td>
+    <td>322M</td>
+    <td>768x768</td>
+    <td>-</td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/cityscapes/seg_large_mask/checkpoint.pth">model</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/cityscapes/seg_large_mask/variant.yml">config</a></td>
+    <td><a href="https://www.rocq.inria.fr/cluster-willow/rstrudel/segmenter/checkpoints/cityscapes/seg_large_mask/log.txt">log</a></td>
+  </tr>
+</table>
+
+## Inference
+
+Download one checkpoint with its configuration in a common folder, for example `seg_tiny_mask`.
+
+You can generate segmentation maps from your own data with:
+```python
+python -m segm.inference --model-path seg_tiny_mask/checkpoint.pth -i images/ -o segmaps/ 
+```
+
+To evaluate on ADE20K, run the command:
+```python
+# single-scale evaluation:
+python -m segm.eval.miou seg_tiny_mask/checkpoint.pth ade20k --singlescale
+# multi-scale evaluation:
+python -m segm.eval.miou seg_tiny_mask/checkpoint.pth ade20k --multiscale
+```
+
+## Train
+
+Train `Seg-T-Mask/16` on ADE20K on a single GPU:
+```python
+python -m segm.train --log-dir seg_tiny_mask --dataset ade20k \
+  --backbone vit_tiny_patch16_384 --decoder mask_transformer
+```
+
+To train `Seg-B-Mask/16`, simply set `vit_base_patch16_384` as backbone and launch the above command using a minimum of 4 V100 GPUs (~12 minutes per epoch) and up to 8 V100 GPUs (~7 minutes per epoch). The code uses [SLURM](https://slurm.schedmd.com/documentation.html) environment variables.
+
+## Logs
+
+To plot the logs of your experiments, you can use
+```python
+python -m segm.utils.logs logs.yml
+```
+
+with `logs.yml` located in `utils/` with the path to your experiments logs:
+```yaml
+root: /path/to/checkpoints/
+logs:
+  seg-t: seg_tiny_mask/log.txt
+  seg-b: seg_base_mask/log.txt
+```
+
+## Attention Maps
+
+To visualize the attention maps for `Seg-T-Mask/16` encoder layer 0 and patch `(0, 21)`, you can use:
+
+```python
+python -m segm.scripts.show_attn_map seg_tiny_mask/checkpoint.pth \ 
+images/im0.jpg output_dir/ --layer-id 0 --x-patch 0 --y-patch 21 --enc
+```
+
+Different options are provided to select the generated attention maps:
+* `--enc` or `--dec`: Select encoder or decoder attention maps respectively.
+* `--patch` or `--cls`: `--patch` generates attention maps for the patch with coordinates `(x_patch, y_patch)`. `--cls` combined with `--enc` generates attention maps for the CLS token of the encoder. `--cls` combined with `--dec` generates maps for each class embedding of the decoder.
+* `--x-patch` and `--y-patch`: Coordinates of the patch to draw attention maps from. This flag is ignored when `--cls` is used.
+* `--layer-id`: Select the layer for which the attention maps are generated.
+
+For example, to generate attention maps for the decoder class embeddings, you can use:
+
+```python
+python -m segm.scripts.show_attn_map seg_tiny_mask/checkpoint.pth \
+images/im0.jpg output_dir/ --layer-id 0 --dec --cls
+```
+
+Attention maps for patch `(0, 21)` in `Seg-L-Mask/16` encoder layers 1, 4, 8, 12 and 16: 
+
+![Attention maps of patch x=8 and y=21 and encoder layers 1, 4, 8, 12 and 16](./attn_maps_enc.png)
+
+Attention maps for the class embeddings in `Seg-L-Mask/16` decoder layer 0: 
+
+![Attention maps of cls tokens 7, 15, 18, 22, 36 and 57 and Mask decoder layer 0](./attn_maps_dec.png)
+
+## Video Segmentation
+
+Zero shot video segmentation on [DAVIS](https://davischallenge.org/) video dataset with Seg-B-Mask/16 model trained on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/).
+
+<p align="middle">
+  <img src="https://github.com/rstrudel/segmenter/blob/master/gifs/choreography.gif" width="350">
+  <img src="https://github.com/rstrudel/segmenter/blob/master/gifs/city-ride.gif" width="350">
+</p>
+<p align="middle">
+  <img src="https://github.com/rstrudel/segmenter/blob/master/gifs/car-competition.gif" width="350">
+  <img src="https://github.com/rstrudel/segmenter/blob/master/gifs/breakdance-flare.gif" width="350">
+</p>
+
+## BibTex
+
+```
+@article{strudel2021,
+  title={Segmenter: Transformer for Semantic Segmentation},
+  author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+  journal={arXiv preprint arXiv:2105.05633},
+  year={2021}
+}
+```
 
 
-## Vit3D MeshNet Training Workflow
+## Acknowledgements
 
-- **Platform**: Slurm cluster
-- **Compute Specs**: v100 GPUs, High Memory Nodes
-- **Environment Management**: Conda with `neuro` environment.
-- **Project Directory**: `/data/users2/bbaker/projects/MeshVit/neuro2`
-- **Logging**: Slurm logs stored in `/data/users2/bbaker/projects/MeshVit/slurm/`.
-- **Notifications**: Configured for `bbaker43@gsu.edu`.
-- **Main Script**: `minimal_mongo.py` within the `training` folder.
-  - **Model**: `meshnet`
-  - **Training Duration**: Quick iterations with 10 epochs.
-  - **Segmentation Classes**: Three distinct classes.
-  - **Results Directory**: `../vit3d_results/`.
-
-Development Insights:
-- The Conda environment ensures a consistent working environment.
-- The use of Slurm streamlines GPU utilization and job management.
-- Regular email notifications and log separation for quick troubleshooting and monitoring.
-- Dataset customization via specific subvolume and patch sizes to cater to specific data nuances.
-
-# test.py  
-
-## 3D Segmenter with Vision Transformer
-
-- **Framework**: PyTorch
-- **Image Size**: 3D volume with dimensions 38x38x38
-- **Device**: CUDA (GPU acceleration)
-
-### Model Components:
-- **Vision Transformer**: `VisionTransformer3d` 
-  - Patches of size: 12
-  - Embedding size: 128
-  - Depth: 8
-  - Number of heads: 3
-  - Input channels: 1
-  
-- **Decoder**: `MaskTransformer3d` 
-  - Heads: 2
-  - Dropout: 0.0 and 0.1
-
-- **Segmenter**: Combines the Vision Transformer and Decoder for 3D segmentation.
-
-### Experiment:
-- Dummy 3D data is generated to feed into the `Segmenter3d`.
-- The trainable parameters of the model are then counted and printed.
-
-Development Note:
-This script showcases the integration of a 3D Vision Transformer with a custom decoder for segmentation tasks. The current configuration is indicative and may need tweaking based on the dataset and desired results.
-
-# meshvit/MaskTransformer3d.py
-
-## Mask Transformer for Image Segmentation
-
-This module focuses on image segmentation using transformer-based architectures. Here's a breakdown of its architecture and components:
-
-- **Framework**: PyTorch.
-
-### Primary Components:
-
-- **MaskTransformer (Class)**: 
-  - **Input Parameters**:
-    - `n_cls`: Number of classes.
-    - `patch_size`: Size of each image patch.
-    - `d_encoder`: Encoder depth.
-    - `n_layers`: Number of transformer layers.
-    - `n_heads`: Number of attention heads.
-    - `d_model`: Depth of the model.
-    - `d_ff`: Depth of the feed-forward network.
-    - `drop_path_rate`: Dropout rate.
-    - `dropout`: Dropout value.
-  - **Attributes**:
-    - `blocks`: Sequential transformer blocks.
-    - `cls_emb`: Embeddings for the classes.
-    - `proj_dec`: Projection for the decoder.
-    - `proj_patch`: Projection for patches.
-    - `proj_classes`: Projection for the classes.
-    - `decoder_norm`: Layer normalization for the decoder.
-    - `mask_norm`: Layer normalization for the mask.
-  - **Methods**:
-    - `forward`: Propagates the input through the model, returning masks.
-    - `get_attention_map`: Retrieves the attention map for a given layer ID.
-
-- **Utilities and Blocks**:
-  - `Block`: Basic transformer block used in the sequence.
-  - `FeedForward`: Basic feed-forward network block.
-  - `init_weights`: Helper function to initialize weights.
-  - `trunc_normal_`: Truncated normal initialization from `timm`.
-
-### Developer Insights:
-
-- The `MaskTransformer` is tailored to segment images, extracting features from the encoder output and predicting segmentation masks.
-- It combines traditional transformer blocks with custom projections to cater to segmentation specifics.
-- Attention maps can be retrieved for specific layers, aiding in model interpretability and understanding.
-
-# meshvit/ViT2d.py
-
-## Visual Transformer using Linformer
-
-This code module provides an implementation of the Visual Transformer (ViT) model that leverages the efficient attention mechanism of Linformer for image classification.
-
-- **Frameworks & Libraries**: PyTorch, Linformer, ViT from `vit_pytorch`.
-
-### Key Features:
-
-- **build_vit Function**: 
-  - **Input Parameters**:
-    - `dim`: Dimensionality of the token embeddings.
-    - `seq_len`: Length of the sequence, determined by image and patch size.
-    - `depth`: Number of transformer layers.
-    - `heads`: Number of attention heads.
-    - `k`: Context window size for Linformer.
-    - `image_size`: Dimension (height/width) of the input image.
-    - `patch_size`: Size of each image patch.
-    - `num_classes`: Number of output classes.
-    - `channels`: Number of input channels (e.g., 3 for RGB images).
-  - **Description**: Constructs the ViT model using Linformer as the transformer backbone.
-  - **Return**: The ViT model.
-
-- **Efficient Attention Mechanism**:
-  - The Linformer reduces the self-attention computation from O(n^2) to O(nk) by approximating the full attention matrix with a fixed size context window.
-  
-### Usage:
-
-- When executed as a main script, the module builds a default ViT model and prints its modules.
-
-### Developer Insights:
-
-- The integration of Linformer in ViT paves the way for handling larger images or sequences without a significant increase in computation.
-- The `seq_len` represents the total number of patches plus a class token, which is used for classification in the ViT paradigm.
-- By using efficient transformers like Linformer in computer vision models, developers can harness the power of transformers while maintaining computational feasibility.
-
-
-# meshvit/ViT3d.py
-
-## 3D Visual Transformer using Linformer
-
-The module provides a 3D variant of the Visual Transformer (ViT) for processing volumetric data using the Linformer's efficient attention mechanism.
-
-- **Frameworks & Libraries**: PyTorch, Linformer, `einops`.
-
-### Key Features:
-
-- **ViT3d Class**:
-  - **Description**: A 3D version of the Visual Transformer, modified to handle volumetric data.
-  - **Key Variables**:
-    - `pos_embedding`: Positional embeddings for patches.
-    - `cls_token`: Special classification token.
-    - `transformer`: Underlying transformer, Linformer in this case.
-    - `mlp_head`: The MLP layer for final classification.
-  - **Methods**:
-    - `forward`: Processes an input volume and returns model predictions.
-
-- **build_vit Function**: 
-  - **Input Parameters**:
-    - `dim`: Dimensionality of the token embeddings.
-    - `seq_len`: Length of the sequence, determined by image and patch size.
-    - `depth`: Number of transformer layers.
-    - `heads`: Number of attention heads.
-    - `k`: Context window size for Linformer.
-    - `image_size`: Dimension (height/width/depth) of the input volume.
-    - `patch_size`: Size of each image patch.
-    - `num_classes`: Number of output classes.
-    - `channels`: Number of input channels (e.g., 1 for grayscale volumes).
-    - `output_shape`: The desired shape of the model's output. Useful for segmentations or other spatial outputs.
-  - **Description**: Constructs the 3D ViT model using Linformer as its transformer backbone.
-  - **Return**: The 3D ViT model.
-
-- **Efficient Attention Mechanism**:
-  - The Linformer reduces the self-attention computation by approximating the full attention matrix with a fixed size context window.
-
-### Usage:
-
-- When executed as a main script, the module creates an instance of the 3D ViT model, processes a random input volume, and prints the output shape.
-
-### Developer Insights:
-
-- The use of Linformer in the 3D ViT model allows for efficient handling of larger volumes.
-- The `seq_len` represents the total number of patches plus a class token, adapted for the 3D setting.
-- This architecture is ideal for 3D image tasks like medical image analysis where the data is naturally volumetric.
+The Vision Transformer code is based on [timm](https://github.com/rwightman/pytorch-image-models) library and the semantic segmentation training and evaluation pipeline 
+is using [mmsegmentation](https://github.com/open-mmlab/mmsegmentation).
