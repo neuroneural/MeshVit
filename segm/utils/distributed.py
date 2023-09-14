@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 import torch.distributed as dist
 
-import segm.utils.torch as ptu
+import segmenter.segm.utils.torch as ptu
 
 
 def init_process(backend="nccl"):

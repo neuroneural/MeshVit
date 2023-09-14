@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-import segm.utils.torch as ptu
+import segmenter.segm.utils.torch as ptu
 
 
 class Loader(DataLoader):

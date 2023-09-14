@@ -3,7 +3,7 @@ import click
 import zipfile
 
 from pathlib import Path
-from segm.utils.download import download
+from segmenter.segm.utils.download import download
 
 
 def download_ade(path, overwrite=False):

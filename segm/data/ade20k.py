@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from segm.data.base import BaseMMSeg
-from segm.data import utils
-from segm.config import dataset_dir
+from segmenter.segm.data.base import BaseMMSeg
+from segmenter.segm.data import utils
+from segmenter.segm.config import dataset_dir
 
 
 ADE20K_CONFIG_PATH = Path(__file__).parent / "config" / "ade20k.py"

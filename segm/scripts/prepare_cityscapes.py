@@ -6,7 +6,7 @@ import mmcv
 import zipfile
 
 from pathlib import Path
-from segm.utils.download import download
+from segmenter.segm.utils.download import download
 
 USERNAME = None
 PASSWORD = None

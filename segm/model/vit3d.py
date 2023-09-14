@@ -6,36 +6,45 @@ https://github.com/rwightman/pytorch-image-models
 import torch
 import torch.nn as nn
 
-from segmenter.segm.model.utils import init_weights, resize_pos_embed
+from segmenter.segm.model.utils import init_weights, resize_pos_embed, resize_pos_embed3d
 from segmenter.segm.model.blocks import Block
 
 from timm.models.layers import DropPath
 from timm.models.layers import trunc_normal_
 from timm.models.vision_transformer import _load_weights
+from einops.layers.torch import Rearrange
 
-
-class PatchEmbedding(nn.Module):
+from meshvit.ViT3d import build_vit
+class PatchEmbedding3d(nn.Module):
     def __init__(self, image_size, patch_size, embed_dim, channels):
         super().__init__()
 
         self.image_size = image_size
-        if image_size[0] % patch_size != 0 or image_size[1] % patch_size != 0:
+        if image_size[0] % patch_size != 0 or image_size[1] % patch_size != 0 or image_size[2] % patch_size != 0:
             raise ValueError("image dimensions must be divisible by the patch size")
-        self.grid_size = image_size[0] // patch_size, image_size[1] // patch_size
-        self.num_patches = self.grid_size[0] * self.grid_size[1]
+        self.grid_size = image_size[0] // patch_size, image_size[1] // patch_size, image_size[2] // patch_size
+        self.num_patches = self.grid_size[0] * self.grid_size[1] * self.grid_size[2]
         self.patch_size = patch_size
+        self.embed_dim = embed_dim
 
-        self.proj = nn.Conv2d(
-            channels, embed_dim, kernel_size=patch_size, stride=patch_size
+        #self.proj = nn.Conv2d(
+        #  channels, embed_dim, kernel_size=patch_size, stride=patch_size
+        #)
+        #self.proj = build_vit(dim=embed_dim, depth=1, heads=1, k=64, image_size=image_size[0], patch_size=patch_size, channels=channels, num_classes=embed_dim*self.num_patches)
+        patch_dim = patch_size ** 3
+        self.proj = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) (d p3) -> b (h w d) (p1 p2 p3 c)', p1 = patch_size, p2 = patch_size, p3 = patch_size),
+            nn.Linear(patch_dim, embed_dim),
         )
 
     def forward(self, im):
-        B, C, H, W = im.shape
-        x = self.proj(im).flatten(2).transpose(1, 2)
+        B, C, H, W, D = im.shape
+        #x = self.proj(im).flatten(2).transpose(1, 2)
+        x = self.proj(im).reshape(B, self.num_patches, self.embed_dim)
         return x
 
 
-class VisionTransformer(nn.Module):
+class VisionTransformer3d(nn.Module):
     def __init__(
         self,
         image_size,
@@ -51,7 +60,7 @@ class VisionTransformer(nn.Module):
         channels=3,
     ):
         super().__init__()
-        self.patch_embed = PatchEmbedding(
+        self.patch_embed = PatchEmbedding3d(
             image_size,
             patch_size,
             d_model,
@@ -106,26 +115,29 @@ class VisionTransformer(nn.Module):
         _load_weights(self, checkpoint_path, prefix)
 
     def forward(self, im, return_features=False):
-        B, _, H, W = im.shape
+        B, _, H, W, D = im.shape
         PS = self.patch_size
 
         x = self.patch_embed(im)
+        #print("after patch_embed ", x.shape)
         cls_tokens = self.cls_token.expand(B, -1, -1)
         if self.distilled:
             dist_tokens = self.dist_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, dist_tokens, x), dim=1)
         else:
             x = torch.cat((cls_tokens, x), dim=1)
+        #print("distilled ", x.shape)
 
         pos_embed = self.pos_embed
         num_extra_tokens = 1 + self.distilled
         if x.shape[1] != pos_embed.shape[1]:
-            pos_embed = resize_pos_embed(
+            pos_embed = resize_pos_embed3d(
                 pos_embed,
                 self.patch_embed.grid_size,
-                (H // PS, W // PS),
+                (H // PS, W // PS, D // PS),
                 num_extra_tokens,
             )
+        #print("pos_embed ", pos_embed.shape)
         x = x + pos_embed
         x = self.dropout(x)
 
@@ -151,7 +163,7 @@ class VisionTransformer(nn.Module):
             raise ValueError(
                 f"Provided layer_id: {layer_id} is not valid. 0 <= {layer_id} < {self.n_layers}."
             )
-        B, _, H, W = im.shape
+        B, _, H, W, D = im.shape
         PS = self.patch_size
 
         x = self.patch_embed(im)
@@ -165,10 +177,10 @@ class VisionTransformer(nn.Module):
         pos_embed = self.pos_embed
         num_extra_tokens = 1 + self.distilled
         if x.shape[1] != pos_embed.shape[1]:
-            pos_embed = resize_pos_embed(
+            pos_embed = resize_pos_embed3d(
                 pos_embed,
                 self.patch_embed.grid_size,
-                (H // PS, W // PS),
+                (H // PS, W // PS, D // PS),
                 num_extra_tokens,
             )
         x = x + pos_embed

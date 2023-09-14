@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from segmenter.segm.model.utils import padding, unpadding
+from segmenter.segm.model.utils import padding, unpadding, padding3d, unpadding3d
 from timm.models.layers import trunc_normal_
 
 
-class Segmenter(nn.Module):
+class Segmenter3d(nn.Module):
     def __init__(
         self,
         encoder,
@@ -30,21 +30,22 @@ class Segmenter(nn.Module):
         return nwd_params
 
     def forward(self, im):
-        H_ori, W_ori = im.size(2), im.size(3)
-        im = padding(im, self.patch_size)
-        H, W = im.size(2), im.size(3)
+        H_ori, W_ori, D_ori = im.size(2), im.size(3), im.size(4)
+        im = padding3d(im, self.patch_size)
+        H, W, D = im.size(2), im.size(3), im.size(4)
 
         x = self.encoder(im, return_features=True)
-
+        #print('xencoder',x.shape)
         # remove CLS/DIST tokens for decoding
         num_extra_tokens = 1 + self.encoder.distilled
         x = x[:, num_extra_tokens:]
 
-        masks = self.decoder(x, (H, W))
-
-        masks = F.interpolate(masks, size=(H, W), mode="bilinear")
-        masks = unpadding(masks, (H_ori, W_ori))
-
+        masks = self.decoder(x, (H, W, D))
+        #print ('masks1',masks.shape)
+        masks = F.interpolate(masks, size=(H, W, D), mode="trilinear")
+        #print('masks2',masks.shape)
+        masks = unpadding3d(masks, (H_ori, W_ori, D_ori))
+        #print('masks3',masks.shape)
         return masks
 
     def get_attention_map_enc(self, im, layer_id):

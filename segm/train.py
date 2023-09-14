@@ -8,20 +8,20 @@ import click
 import argparse
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from segm.utils import distributed
-import segm.utils.torch as ptu
+from segmenter.segm.utils import distributed
+import segmenter.segm.utils.torch as ptu
 from segm import config
 
-from segm.model.factory import create_segmenter
-from segm.optim.factory import create_optimizer, create_scheduler
-from segm.data.factory import create_dataset
-from segm.model.utils import num_params
+from segmenter.segm.model.factory import create_segmenter
+from segmenter.segm.optim.factory import create_optimizer, create_scheduler
+from segmenter.segm.data.factory import create_dataset
+from segmenter.segm.model.utils import num_params
 
 from timm.utils import NativeScaler
 from contextlib import suppress
 
-from segm.utils.distributed import sync_model
-from segm.engine import train_one_epoch, evaluate
+from segmenter.segm.utils.distributed import sync_model
+from segmenter.segm.engine import train_one_epoch, evaluate
 
 
 @click.command(help="")

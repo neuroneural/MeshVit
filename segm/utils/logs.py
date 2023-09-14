@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import click
 from collections import OrderedDict
 
-from segm.utils.lines import Lines
+from segmenter.segm.utils.lines import Lines
 
 
 def plot_logs(logs, x_key, y_key, size, vmin, vmax, epochs):

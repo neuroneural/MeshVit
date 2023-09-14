@@ -1,7 +1,7 @@
 from timm import scheduler
 from timm import optim
 
-from segm.optim.scheduler import PolynomialLR
+from segmenter.segm.optim.scheduler import PolynomialLR
 
 
 def create_scheduler(opt_args, optimizer):

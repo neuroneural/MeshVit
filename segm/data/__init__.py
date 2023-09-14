@@ -1,6 +1,6 @@
-from segm.data.loader import Loader
+from segmenter.segm.data.loader import Loader
 
-from segm.data.imagenet import ImagenetDataset
-from segm.data.ade20k import ADE20KSegmentation
-from segm.data.pascal_context import PascalContextDataset
-from segm.data.cityscapes import CityscapesDataset
+from segmenter.segm.data.imagenet import ImagenetDataset
+from segmenter.segm.data.ade20k import ADE20KSegmentation
+from segmenter.segm.data.pascal_context import PascalContextDataset
+from segmenter.segm.data.cityscapes import CityscapesDataset

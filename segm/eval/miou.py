@@ -10,16 +10,16 @@ import torch
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from segm.utils import distributed
-from segm.utils.logger import MetricLogger
-import segm.utils.torch as ptu
+from segmenter.segm.utils import distributed
+from segmenter.segm.utils.logger import MetricLogger
+import segmenter.segm.utils.torch as ptu
 
-from segm.model.factory import load_model
-from segm.data.factory import create_dataset
-from segm.metrics import gather_data, compute_metrics
+from segmenter.segm.model.factory import load_model
+from segmenter.segm.data.factory import create_dataset
+from segmenter.segm.metrics import gather_data, compute_metrics
 
-from segm.model.utils import inference
-from segm.data.utils import seg_to_rgb, rgb_denormalize, IGNORE_LABEL
+from segmenter.segm.model.utils import inference
+from segmenter.segm.data.utils import seg_to_rgb, rgb_denormalize, IGNORE_LABEL
 from segm import config
 
 

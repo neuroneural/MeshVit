@@ -11,7 +11,7 @@ import datetime
 import torch
 import torch.distributed as dist
 
-import segm.utils.torch as ptu
+import segmenter.segm.utils.torch as ptu
 
 
 class SmoothedValue(object):

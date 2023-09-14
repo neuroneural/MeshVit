@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 from pathlib import Path
 
-from segm.utils.download import download
+from segmenter.segm.utils.download import download
 
 
 def download_pcontext(path, overwrite=False):

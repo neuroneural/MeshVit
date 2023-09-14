@@ -5,14 +5,14 @@ from PIL import Image
 import numpy as np
 import torchvision.transforms.functional as F
 
-import segm.utils.torch as ptu
+import segmenter.segm.utils.torch as ptu
 
-from segm.data.utils import STATS
-from segm.data.ade20k import ADE20K_CATS_PATH
-from segm.data.utils import dataset_cat_description, seg_to_rgb
+from segmenter.segm.data.utils import STATS
+from segmenter.segm.data.ade20k import ADE20K_CATS_PATH
+from segmenter.segm.data.utils import dataset_cat_description, seg_to_rgb
 
-from segm.model.factory import load_model
-from segm.model.utils import inference
+from segmenter.segm.model.factory import load_model
+from segmenter.segm.model.utils import inference
 
 
 @click.command()

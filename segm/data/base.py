@@ -11,8 +11,8 @@ import mmcv
 from mmcv.utils import Config
 
 
-from segm.data.utils import STATS, IGNORE_LABEL
-from segm.data import utils
+from segmenter.segm.data.utils import STATS, IGNORE_LABEL
+from segmenter.segm.data import utils
 
 
 class BaseMMSeg(Dataset):

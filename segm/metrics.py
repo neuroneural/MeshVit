@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch.distributed as dist
-import segm.utils.torch as ptu
+import segmenter.segm.utils.torch as ptu
 
 import os
 import pickle as pkl
