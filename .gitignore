@@ -3,3 +3,5 @@ logs/
 meshnet_results/
 vit3d_results/
 vae_ideas/
+demo/jobs
+experiments/jobs
