@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemoMeshnet.py", line 102, in <module>
+    channels=model_channels,
+NameError: name 'model_channels' is not defined

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 114, in <module>
+    vit = VisionTransformer3d((patchdim, patchdim, patchdim), 32, 12, 128, 128, 8, numclasses, channels=1)
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/vit3d.py", line 63, in __init__
+    self.patch_embed = PatchEmbedding3d(
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/vit3d.py", line 24, in __init__
+    raise ValueError("image dimensions must be divisible by the patch size")
+ValueError: image dimensions must be divisible by the patch size

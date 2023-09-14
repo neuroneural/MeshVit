@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemoMeshnet.py", line 101, in <module>
+    n_classes=self.n_classes,
+NameError: name 'self' is not defined

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 153, in <module>
+    print(f"Batch {i+1}, Loss: {loss.item()}")
+NameError: name 'loss' is not defined
+Exception in thread Thread-2:
+Traceback (most recent call last):
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/threading.py", line 932, in _bootstrap_inner
+    self.run()
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/threading.py", line 870, in run
+    self._target(*self._args, **self._kwargs)
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/utils/data/_utils/pin_memory.py", line 51, in _pin_memory_loop

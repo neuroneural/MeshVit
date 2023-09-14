@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "mongodemoMeshnet.py", line 100, in <module>
+    model = enMesh_checkpoint(in_channels=1,
+TypeError: __init__() missing 1 required positional argument: 'config_file'

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "mongodemo3dVit.py", line 119, in <module>
+    vit = VisionTransformer3d(image_size, patch_size, n_layers, d_model, d_ff, n_heads, n_cls, 
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/vit3d.py", line 63, in __init__
+    self.patch_embed = PatchEmbedding3d(
+  File "/data/users2/washbee/MeshVit/segmenter/segm/model/vit3d.py", line 23, in __init__
+    if image_size[0] % patch_size != 0 or image_size[1] % patch_size != 0 or image_size[2] % patch_size != 0:
+TypeError: 'int' object is not subscriptable

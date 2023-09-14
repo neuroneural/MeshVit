@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "mongodemoMeshnet.py", line 106, in <module>
+    model = enMesh_checkpoint(in_channels=1,
+  File "/data/users2/washbee/MeshVit/demo/meshnet.py", line 177, in __init__
+    with open(config_file, "r") as f:
+TypeError: expected str, bytes or os.PathLike object, not dict

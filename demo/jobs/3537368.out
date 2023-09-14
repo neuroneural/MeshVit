@@ -1,0 +1,7 @@
+Epoch 1/1
+xencoder torch.Size([1, 4097, 128])
+masks1 torch.Size([1, 104, 16, 16, 16])
+masks2 torch.Size([1, 104, 64, 64, 64])
+masks3 torch.Size([1, 104, 64, 64, 64])
+compare torch.Size([1, 104, 64, 64, 64]) torch.Size([1, 64, 64, 64]) torch.Size([1, 256, 256, 256])
+Batch 1, Loss: 4.070039749145508

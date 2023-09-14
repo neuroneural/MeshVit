@@ -1,0 +1,4 @@
+  File "mongodemo3dVit.py", line 145
+    print('min max', torch.min(x),torch.max(x),torch.min(y),torch.max(y),torch.min(outputs), torch.max(outputs),torch.min(subvolx),torch.max(subvolx) torch.min(subvoly), torch.max(subvoly))
+                                                                                                                                                      ^
+SyntaxError: invalid syntax

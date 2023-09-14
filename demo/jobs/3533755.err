@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "mongodemoMeshnet.py", line 159, in <module>
+    loss.backward()
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/_tensor.py", line 487, in backward
+    torch.autograd.backward(
+  File "/data/users2/washbee/anaconda3/envs/neurips/lib/python3.8/site-packages/torch/autograd/__init__.py", line 200, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 6.50 GiB (GPU 0; 31.74 GiB total capacity; 23.44 GiB already allocated; 745.38 MiB free; 29.81 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
