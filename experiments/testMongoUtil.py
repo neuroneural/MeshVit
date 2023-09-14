@@ -1,32 +1,69 @@
 import unittest
-from mongoutil import getMongoDataset
-# Assuming the getMongoDataset function and its dependencies have been defined earlier in the file.
+from mongoutil import *
+from catalyst.data import BatchPrefetchLoaderWrapper, ReaderCompose
 
-class TestMongoDataset(unittest.TestCase):
-    
+import easybar
+class TestMongoDataLoader(unittest.TestCase):
+
     def setUp(self):
-        # This can be used to set up any required state or configuration for tests.
-        pass
+        self.batch_size = 32
+        self.num_workers = 4
+        self.mongo_loader = MongoDataLoader(batch_size=self.batch_size)
+        
+    def test_mongo_loaders(self):
+        # Get the train, valid, and test loaders
+        train_loader,valid_loader, test_loader = self.mongo_loader.get_mongo_loaders(
+            num_workers=self.num_workers
+        )
+        
+        
+        train_loader = BatchPrefetchLoaderWrapper(train_loader,
+     num_prefetches=4 )
 
-    def test_output_datasets(self):
-        # Basic test to check if the function returns the expected datasets
+        valid_loader = BatchPrefetchLoaderWrapper(valid_loader,
+     num_prefetches=4 )
+        
+        test_loader = BatchPrefetchLoaderWrapper(test_loader,
+     num_prefetches=4 )
 
-        train_dataset, valid_dataset, test_dataset = getMongoDataset()
+        # Check if loaders are not None
+        self.assertIsNotNone(train_loader)
+        self.assertIsNotNone(valid_loader)
+        self.assertIsNotNone(test_loader)
 
-        # Assertions
-        self.assertIsNotNone(train_dataset, "Training dataset should not be None.")
-        self.assertIsNotNone(valid_dataset, "Validation dataset should not be None.")
-        self.assertIsNotNone(test_dataset, "Test dataset should not be None.")
+        loaders = {
+            "Train": train_loader,
+            "Valid": valid_loader,
+            "Test": test_loader
+        }
+        
+        it = 0
+        subjs = [615,76,78]
+        for name, loader in loaders.items():
+            num_batches = 0
+            num_subjects = 0
+            for batch in loader:
+                # assuming the subjects are in the first dimension of the batch
+                num_subjects += batch[0].shape[0]
+                num_batches += 1
+                easybar.print_progress(num_subjects, len(loader))
 
-        # Here you might want to add more specific assertions, for example:
-        # - Check the type of train_dataset, valid_dataset, and test_dataset.
-        # - Check the length or size of the datasets.
-        # - Check if the datasets contain expected fields or attributes.
 
-    def tearDown(self):
-        # This can be used to tear down any state or configuration after tests.
-        pass
+            print(f"{name} Loader:")
+            print(f"Number of batches: {num_batches}")
+            print(f"Number of subjects: {num_subjects}")
+            print("-------------------------------")
 
-# If this file is the main module, run the tests
+            # For example, if you want to ensure that each loader has at least one batch
+            self.assertGreater(num_batches, 0)
+            
+            assert num_subjects == subjs[it]
+            it+=1
+    
+            #print("hcp has 769 total")
+            
+            # Add more assertions as necessary
+            
+
 if __name__ == '__main__':
     unittest.main()
