@@ -6,7 +6,7 @@ import easybar
 class TestMongoDataLoader(unittest.TestCase):
 
     def setUp(self):
-        self.batch_size = 32
+        self.batch_size = 8
         self.num_workers = 4
         self.mongo_loader = MongoDataLoader(batch_size=self.batch_size)
         
@@ -16,15 +16,14 @@ class TestMongoDataLoader(unittest.TestCase):
             num_workers=self.num_workers
         )
         
-        
-        train_loader = BatchPrefetchLoaderWrapper(train_loader,
-     num_prefetches=4 )
+    #     train_loader = BatchPrefetchLoaderWrapper(train_loader,
+    #  num_prefetches=4 )
 
-        valid_loader = BatchPrefetchLoaderWrapper(valid_loader,
-     num_prefetches=4 )
+    #     valid_loader = BatchPrefetchLoaderWrapper(valid_loader,
+    #  num_prefetches=4 )
         
-        test_loader = BatchPrefetchLoaderWrapper(test_loader,
-     num_prefetches=4 )
+    #     test_loader = BatchPrefetchLoaderWrapper(test_loader,
+    #  num_prefetches=4 )
 
         # Check if loaders are not None
         self.assertIsNotNone(train_loader)
@@ -40,6 +39,7 @@ class TestMongoDataLoader(unittest.TestCase):
         it = 0
         subjs = [615,76,78]
         for name, loader in loaders.items():
+            print(name, 'length loader',len(loader))
             num_batches = 0
             num_subjects = 0
             for batch in loader:

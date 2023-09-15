@@ -39,7 +39,7 @@ args = None
 
 
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(labelnow_choice=1)  # Change labelnow_choice as needed
+loader = MongoDataLoader(batch_size=8,labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 
@@ -52,7 +52,6 @@ def get_loaders(
     subvolume_shape: List[int],
     train_subvolumes: int,
     infer_subvolumes: int,
-    batch_size: int,  # Add a batch_size parameter with a default value
     num_workers: int,
     colname: str
 ) -> dict:
@@ -62,7 +61,7 @@ def get_loaders(
     infer_loaders = collections.OrderedDict()
     
     # Call the get_mongo_loaders method to get the DataLoader instances with the specified batch size
-    train_loader, valid_loader, test_loader = loader.get_mongo_loaders(batch_size=batch_size, num_workers=num_workers)
+    train_loader, valid_loader, test_loader = loader.get_mongo_loaders(num_workers=num_workers)
     
     
     train_loaders["train"] = BatchPrefetchLoaderWrapper(train_loader,
@@ -94,6 +93,7 @@ class CustomRunner(Runner):
 
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
         self.batch_size = batch_size  # Store the batch size
+        self.num_subvolumes = (int)(256**3/64**3)
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
         """Returns the loaders for a given stage."""
@@ -111,16 +111,45 @@ class CustomRunner(Runner):
             batch["coords"],
         )
 
+    def check_lr_change(self,runner,old_lr):
+        new_lr = runner.optimizer.param_groups[0]['lr']
+        if old_lr != new_lr:
+            print(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
+        return new_lr
+
+
+    def on_batch_end(self, runner):
+        """
+        Calls scheduler step after a batch ends
+        """
+        old_lr = runner.optimizer.param_groups[0]['lr']
+        self.scheduler.step()
+        self.check_lr_change(runner,old_lr)
+        super().on_batch_end(runner)
+
+
     def on_epoch_end(self, runner):
         """
         Calls scheduler step after an epoch ends using validation dice score
         """
+
+        if runner.loader_key == "train":
+        #    assert self.countSubjects//self.batch_size == len(runner.get_loaders(stage='train')['train'])
+            print(f"There were {self.countSubjects} training subjects!")
+            import logging
+            logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+            # Get a logger instance
+            logger = logging.getLogger()
+            # Use the logger to log a message
+            logger.debug(f"counts {self.countSubjects//self.batch_size}, {len(runner.get_loaders(stage='train')['train'])}.")
+
+
         if runner.loader_key == "valid":  # Checking if it's the validation phase
-            print('validation phase and scheduler step update')
+            print('validation phase')
             dice_score = self.loader_metrics.get('macro_dice', None)
             print('validation dice_score', dice_score)
-            if dice_score is not None:
-                self.scheduler.step(dice_score)
+            # if dice_score is not None:
+            #     self.scheduler.step(dice_score)
             super().on_epoch_end(runner)
 
 
@@ -129,6 +158,8 @@ class CustomRunner(Runner):
         Calls runner methods when the dataloader begins and adds
         metrics for loss and macro_dice
         """
+        self.countSubjects=0
+        
         super().on_loader_start(runner)
         self.meters = {
             key: metrics.AdditiveValueMetric(compute_on_call=False)
@@ -145,31 +176,47 @@ class CustomRunner(Runner):
         
         # Modify the batch size to use the one passed from get_loaders
         x, y = batch  # Assuming that the batch contains a tuple (x, y)
+        import logging
+
+        # Configure logging settings
+        logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+        # Get a logger instance
+        logger = logging.getLogger()
+
+        # Use the logger to log a message
+        logger.debug(f"x.shape,y.shape from batch {x.shape}, {y.shape}.")
+
         x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
         y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()
 
-        for x, y in zip(x, y):
-            if self.is_train_loader:
-                self.optimizer.zero_grad()
+        # Use the logger to log a message
+        logger.debug(f"x.shape,y.shape from subvolumes {x.shape}, {y.shape}.")
 
-            y_hat = self.model(x.cuda())
-            loss = self.criterion(y_hat.cuda(), y.cuda())
+        assert x.shape[0] == y.shape[0]
+        self.countSubjects += x.shape[0]
+        if self.is_train_loader:
+            self.optimizer.zero_grad()
 
-            one_hot_targets = (
-                torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
-            )
+        y_hat = self.model(x.cuda())
+        loss = self.criterion(y_hat.cuda(), y.cuda())
 
-            if self.is_train_loader:
-                loss.backward()
-                self.optimizer.step()
+        one_hot_targets = (
+            torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
+        )
 
-            logits_softmax = F.softmax(y_hat)
-            macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
+        if self.is_train_loader:
+            loss.backward()
+            self.optimizer.step()
 
-            self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
+        logits_softmax = F.softmax(y_hat)
+        macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
 
-            for key in ["loss", "macro_dice"]:
-                self.meters[key].update(self.batch_metrics[key].item(), self.batch_size)
+        self.batch_metrics.update({"loss": loss, "macro_dice": macro_dice})
+
+        for key in ["loss", "macro_dice"]:
+            self.meters[key].update(self.batch_metrics[key].item(), self.batch_size)#may be source of bug in logging output.
+    
 
     def on_loader_end(self, runner):
         """
@@ -209,7 +256,6 @@ def voxel_majority_predict_from_subvolumes(loader, n_classes, segmentations=None
         segmentations[i] = torch.max(segmentations[i], 0)[1]
     return segmentations
 
-
 def get_model_memory_size(model):
     params = sum(p.numel() for p in model.parameters())
     tensors = [p for p in model.parameters()]
@@ -248,7 +294,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--large", default=False)
     parser.add_argument(
-        "--n_epochs", default=20, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=50, type=int, metavar="N", help="number of total epochs to run",
     )
     parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
@@ -272,7 +318,7 @@ if __name__ == "__main__":
         subvolume_shape,
         args.train_subvolumes,
         args.infer_subvolumes,
-        batch_size=args.batch_size,
+        #batch_size=args.batch_size,
         num_workers=args.num_workers,
         colname='HCP'
     )
@@ -294,9 +340,19 @@ if __name__ == "__main__":
         logdir += "_dropout"
 
     logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
+    from torch.optim.lr_scheduler import OneCycleLR
+
+    # ... other code ...
+
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)  # initial learning rate
+    print('steps per epoch', len(train_loaders['train']))
+    scheduler = OneCycleLR(optimizer, max_lr=0.001, epochs=args.n_epochs, steps_per_epoch=len(train_loaders["train"]))
+
+    # ... other code ...
+
+    
+    #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
 
     runner = CustomRunner(n_classes=args.n_classes, 
             coords_generator = CoordsGenerator(

@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
 from mongoslabs.gencoords import CoordsGenerator
-from mongoslabs.mongoloader import (
+from mongo_loader import (
     create_client,
     collate_subcubes,
     mcollate,
@@ -13,18 +13,11 @@ import torch
 
 import easybar
 
+from torch.utils.data import DataLoader, Dataset, RandomSampler, BatchSampler
+
+
 
 from torch.utils.data import DataLoader, Dataset
-from mongoslabs.gencoords import CoordsGenerator
-from mongoslabs.mongoloader import (
-    create_client,
-    collate_subcubes,
-    mcollate,
-    MBatchSampler,
-    MongoDataset,
-    MongoClient,
-    mtransform,
-)
 
 class MongoDataLoader:
     # Do not modify the following block
@@ -79,10 +72,15 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        train_sampler = MBatchSampler(train_dataset, batch_size=self.batch_size)
+        #train_sampler = MBatchSampler(train_dataset, batch_size=self.batch_size)
+        random_sampler = RandomSampler(train_dataset)
+        batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
+
         train_loader = DataLoader(
             train_dataset,
-            sampler=train_sampler,
+            #sampler=train_sampler,
+            sampler=batch_sampler,
+            #batch_size=self.batch_size,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
@@ -97,10 +95,16 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        valid_sampler = MBatchSampler(valid_dataset, batch_size=self.batch_size)
+        #valid_sampler = MBatchSampler(valid_dataset, batch_size=self.batch_size)
+        random_sampler = RandomSampler(valid_dataset)
+        batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
+
         valid_loader = DataLoader(
             valid_dataset,
-            sampler=valid_sampler,
+            #sampler=valid_sampler,
+            sampler=batch_sampler,
+            #batch_size=self.batch_size,
+            #shuffle=True,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
@@ -114,10 +118,16 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        test_sampler = MBatchSampler(test_dataset, batch_size=self.batch_size)
+        #test_sampler = MBatchSampler(test_dataset, batch_size=self.batch_size)
+        random_sampler = RandomSampler(test_dataset)
+        batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
+
         test_loader = DataLoader(
             test_dataset,
-            sampler=test_sampler,
+            #sampler=test_sampler,
+            sampler=batch_sampler,
+            #batch_size=self.batch_size,
+            #shuffle=True,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
