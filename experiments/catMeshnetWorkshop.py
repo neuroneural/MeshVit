@@ -35,6 +35,8 @@ import os
     
 args = None
 
+import torch
+print(torch.cuda.device_count())
 
 
 
@@ -65,16 +67,16 @@ def get_loaders(
     
     
     train_loaders["train"] = BatchPrefetchLoaderWrapper(train_loader,
-     num_prefetches=4 )# you GPU memory may limit this. This is the number of
+     num_prefetches=2 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
                        
     train_loaders["valid"] = BatchPrefetchLoaderWrapper(valid_loader,
-     num_prefetches=4 )# you GPU memory may limit this. This is the number of
+     num_prefetches=2 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
     infer_loaders["infer"] = BatchPrefetchLoaderWrapper(test_loader,
-     num_prefetches=4 )# you GPU memory may limit this. This is the number of
+     num_prefetches=2 )# you GPU memory may limit this. This is the number of
                        # brains that will be fetched to the GPU while it is
                        # still busy with compute of a previous batch
 
@@ -84,7 +86,7 @@ def get_loaders(
 class CustomRunner(Runner):
     """Custom Runner for demonstrating a NeuroImaging Pipeline"""
 
-    def __init__(self, n_classes: int, coords_generator: CoordsGenerator, batch_size: int):
+    def __init__(self, n_classes: int, coords_generator: CoordsGenerator, batch_size: int, distributed:bool):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
@@ -94,6 +96,7 @@ class CustomRunner(Runner):
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
         self.batch_size = batch_size  # Store the batch size
         self.num_subvolumes = (int)(256**3/64**3)
+        self.distributed = distributed
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
         """Returns the loaders for a given stage."""
@@ -132,6 +135,7 @@ class CustomRunner(Runner):
         """
         Calls scheduler step after an epoch ends using validation dice score
         """
+        print('runner.loader_key',runner.loader_key)
 
         if runner.loader_key == "train":
         #    assert self.countSubjects//self.batch_size == len(runner.get_loaders(stage='train')['train'])
@@ -142,6 +146,7 @@ class CustomRunner(Runner):
             logger = logging.getLogger()
             # Use the logger to log a message
             logger.debug(f"counts {self.countSubjects//self.batch_size}, {len(runner.get_loaders(stage='train')['train'])}.")
+            print("device ids", model.device_ids)  # This should return a list of device IDs, e.g., [0, 1, 2, 3] for 4 GPUs
 
 
         if runner.loader_key == "valid":  # Checking if it's the validation phase
@@ -185,13 +190,13 @@ class CustomRunner(Runner):
         logger = logging.getLogger()
 
         # Use the logger to log a message
-        logger.debug(f"x.shape,y.shape from batch {x.shape}, {y.shape}.")
+        #logger.debug(f"x.shape,y.shape from batch {x.shape}, {y.shape}.")
 
         x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
         y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()
 
         # Use the logger to log a message
-        logger.debug(f"x.shape,y.shape from subvolumes {x.shape}, {y.shape}.")
+        #logger.debug(f"x.shape,y.shape from subvolumes {x.shape}, {y.shape}.")
 
         assert x.shape[0] == y.shape[0]
         self.countSubjects += x.shape[0]
@@ -204,10 +209,18 @@ class CustomRunner(Runner):
         one_hot_targets = (
             torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
         )
+        # logger.debug(f"istrainloader {self.is_train_loader}")
+        initial_parameters = {name: param.clone() for name, param in self.model.named_parameters()}
 
         if self.is_train_loader:
             loss.backward()
             self.optimizer.step()
+        
+        for name, param in self.model.named_parameters():
+            if not torch.equal(initial_parameters[name], param):
+                logger.debug(f"{name} has changed")
+            else:
+                logger.debug(f"{name} has not changed")
 
         logits_softmax = F.softmax(y_hat)
         macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
@@ -268,7 +281,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
     parser.add_argument("--batch_size", default=8, type=int)
-    parser.add_argument("--num_workers", default=4, type=int)
+    parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",
         default=64,
@@ -288,11 +301,12 @@ if __name__ == "__main__":
         "--sv_h", default=38, type=int, metavar="N", help="Height of subvolumes",
     )
     parser.add_argument("--sv_d", default=38, type=int, metavar="N", help="Depth of subvolumes")
-    parser.add_argument("--model", default="meshnet")
+    #parser.add_argument("--model", default="meshnet")
+    parser.add_argument("--model", default="unet")
     parser.add_argument(
         "--dropout", default=0.1, type=float, metavar="N", help="dropout probability for meshnet",
     )
-    parser.add_argument("--large", default=False)
+    parser.add_argument("--large", default=True)
     parser.add_argument(
         "--n_epochs", default=50, type=int, metavar="N", help="number of total epochs to run",
     )
@@ -305,7 +319,7 @@ if __name__ == "__main__":
     parser.add_argument('--d_encoder', type=int, required=True)
     parser.add_argument('--lr', type=float, required=True)
 
-    
+
     args = parser.parse_args()
     print("{}".format(args))
 
@@ -345,9 +359,11 @@ if __name__ == "__main__":
 
     # ... other code ...
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)  # initial learning rate
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)  # initial learning rate
     print('steps per epoch', len(train_loaders['train']))
-    scheduler = OneCycleLR(optimizer, max_lr=0.001, epochs=args.n_epochs, steps_per_epoch=len(train_loaders["train"]))
+    scheduler = OneCycleLR(optimizer, max_lr=0.001, epochs=args.n_epochs,
+                           steps_per_epoch=len(train_loaders["train"]),
+                           div_factor=10.0, final_div_factor=100.0)
 
     # ... other code ...
 
@@ -358,7 +374,8 @@ if __name__ == "__main__":
             coords_generator = CoordsGenerator(
                 list_shape=[256, 256, 256],
                 list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
-                batch_size=args.batch_size
+                batch_size=args.batch_size,
+                distributed=True
             )
     runner.train(
         model=net,
