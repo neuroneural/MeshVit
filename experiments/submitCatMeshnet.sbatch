@@ -57,6 +57,7 @@ python catMeshnetWorkshop.py \
   --d_ff $D_FF \
   --n_heads $N_HEADS \
   --d_encoder $D_ENCODER \
-  --lr $lr
+  --lr $lr \
+  --no-large
 
 sleep 5

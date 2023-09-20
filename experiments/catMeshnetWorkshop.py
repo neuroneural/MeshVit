@@ -115,9 +115,14 @@ class CustomRunner(Runner):
         )
 
     def check_lr_change(self,runner,old_lr):
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+
         new_lr = runner.optimizer.param_groups[0]['lr']
         if old_lr != new_lr:
-            print(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
+            logger.info(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
         return new_lr
 
 
@@ -125,9 +130,11 @@ class CustomRunner(Runner):
         """
         Calls scheduler step after a batch ends
         """
-        old_lr = runner.optimizer.param_groups[0]['lr']
-        self.scheduler.step()
-        self.check_lr_change(runner,old_lr)
+        if runner.loader_key == "train":
+            old_lr = runner.optimizer.param_groups[0]['lr']
+            self.scheduler.step()
+            self.check_lr_change(runner,old_lr)
+        
         super().on_batch_end(runner)
 
 
@@ -135,27 +142,12 @@ class CustomRunner(Runner):
         """
         Calls scheduler step after an epoch ends using validation dice score
         """
-        print('runner.loader_key',runner.loader_key)
 
-        if runner.loader_key == "train":
-        #    assert self.countSubjects//self.batch_size == len(runner.get_loaders(stage='train')['train'])
-            print(f"There were {self.countSubjects} training subjects!")
-            import logging
-            logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-            # Get a logger instance
-            logger = logging.getLogger()
-            # Use the logger to log a message
-            logger.debug(f"counts {self.countSubjects//self.batch_size}, {len(runner.get_loaders(stage='train')['train'])}.")
-            print("device ids", model.device_ids)  # This should return a list of device IDs, e.g., [0, 1, 2, 3] for 4 GPUs
-
-
-        if runner.loader_key == "valid":  # Checking if it's the validation phase
-            print('validation phase')
-            dice_score = self.loader_metrics.get('macro_dice', None)
-            print('validation dice_score', dice_score)
-            # if dice_score is not None:
-            #     self.scheduler.step(dice_score)
-            super().on_epoch_end(runner)
+        # if runner.loader_key == "valid":  # Checking if it's the validation phase
+        #     print('validation phase')
+        #     dice_score = self.loader_metrics.get('macro_dice', None)
+        #     print('validation dice_score', dice_score)
+        super().on_epoch_end(runner)
 
 
     def on_loader_start(self, runner):
@@ -189,14 +181,7 @@ class CustomRunner(Runner):
         # Get a logger instance
         logger = logging.getLogger()
 
-        # Use the logger to log a message
-        #logger.debug(f"x.shape,y.shape from batch {x.shape}, {y.shape}.")
-
-        x = MongoDataLoader.extract_subvolumes(x, self.coords_generator)
-        y = MongoDataLoader.extract_label_subvolumes(y, self.coords_generator).long()
-
-        # Use the logger to log a message
-        #logger.debug(f"x.shape,y.shape from subvolumes {x.shape}, {y.shape}.")
+        x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
 
         assert x.shape[0] == y.shape[0]
         self.countSubjects += x.shape[0]
@@ -209,19 +194,11 @@ class CustomRunner(Runner):
         one_hot_targets = (
             torch.nn.functional.one_hot(y, self.n_classes).permute(0, 4, 1, 2, 3).cuda()
         )
-        # logger.debug(f"istrainloader {self.is_train_loader}")
-        initial_parameters = {name: param.clone() for name, param in self.model.named_parameters()}
-
+        
         if self.is_train_loader:
             loss.backward()
             self.optimizer.step()
         
-        for name, param in self.model.named_parameters():
-            if not torch.equal(initial_parameters[name], param):
-                logger.debug(f"{name} has changed")
-            else:
-                logger.debug(f"{name} has not changed")
-
         logits_softmax = F.softmax(y_hat)
         macro_dice = dice(logits_softmax, one_hot_targets, mode="macro")
 
@@ -301,14 +278,15 @@ if __name__ == "__main__":
         "--sv_h", default=38, type=int, metavar="N", help="Height of subvolumes",
     )
     parser.add_argument("--sv_d", default=38, type=int, metavar="N", help="Depth of subvolumes")
-    #parser.add_argument("--model", default="meshnet")
-    parser.add_argument("--model", default="unet")
+    parser.add_argument("--model", default="meshnet")
+    #parser.add_argument("--model", default="unet")
     parser.add_argument(
         "--dropout", default=0.1, type=float, metavar="N", help="dropout probability for meshnet",
     )
-    parser.add_argument("--large", default=True)
+    parser.add_argument("--large", action="store_true")
+    parser.add_argument("--no-large", action="store_false", dest="large")
     parser.add_argument(
-        "--n_epochs", default=50, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=100, type=int, metavar="N", help="number of total epochs to run",
     )
     parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
@@ -345,15 +323,25 @@ if __name__ == "__main__":
     else:
         print('creating unet')
         net = UNet(n_channels=1, n_classes=args.n_classes).cuda()
-
-    logdir = "logs/{model}_gmwm".format(model=args.model)
-    if args.large:
+    
+    import uuid
+    unique_id = str(uuid.uuid4())
+    
+    logdir = f"logs/{args.model}"
+    logdir += f"_e{args.n_epochs}"
+    if args.n_classes == 3:
+        logdir+="_gmwm"
+    if args.model == "meshnet" and args.large:
         logdir += "_large"
-
+    if args.model == "meshnet" and not args.large:
+        logdir += "_nolarge"
+        
     if args.dropout:
         logdir += "_dropout"
 
     logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
+    
+    logdir+= f"_{unique_id}"
     
     from torch.optim.lr_scheduler import OneCycleLR
 
@@ -377,17 +365,33 @@ if __name__ == "__main__":
                 batch_size=args.batch_size,
                 distributed=True
             )
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    # Then, anywhere you want to log something:
+ 
+    print("Begin Runner.")
+    from catalyst.dl import CheckpointCallback
+
+    
+    checkpoint_callback = CheckpointCallback(
+        save_n_best=10,  # Number of best models to save
+        loader_key="valid",  # Loader key to save the best models by
+        minimize=False,  # Whether we want to minimize or maximize the metric. If True, will try to minimize, otherwise - maximize
+        metric_key="macro_dice",  
+        logdir=logdir
+    )
+
+
     runner.train(
         model=net,
         optimizer=optimizer,
+        scheduler=scheduler,
         loaders=train_loaders,
         num_epochs=args.n_epochs,
-        scheduler=scheduler,
-        callbacks=[CustomCheckpointCallback(
-            metric_name="macro_dice", 
-            minimize_metric=False, 
-            save_n_best=5, 
-            logdir=logdir)
+        callbacks=[checkpoint_callback
                    ],
         logdir=logdir,
         verbose=True,

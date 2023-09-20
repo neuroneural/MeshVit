@@ -31,6 +31,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+#pyc
+*.pyc
+
 # PyInstaller
 *.manifest
 *.spec
@@ -142,4 +145,6 @@ meshnet_results/
 vit3d_results/
 vae_ideas/
 demo/jobs
-experiments/jobs
+experiments/jobs/
+experiments/logs/
+

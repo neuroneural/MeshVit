@@ -137,32 +137,32 @@ class MongoDataLoader:
         return train_loader, valid_loader, test_loader
 
     @staticmethod
-    def extract_subvolumes(tensor, coord_generator):
-        tensor = tensor.cpu()
-        assert tensor.dim() == 5, "Expected tensor of 5 dimensions (batch, channel, depth, height, width)"
-        batch_size = tensor.shape[0]
+    def extract_subvolumes(mri_tensor, label_tensor, coord_generator):
+        # Generate coordinates
         coords = coord_generator.get_coordinates(mode="train")  # Assuming you want a random subcube
-        subvolumes_list = []
-        for b in range(batch_size):
-            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coords
-            subvolume = tensor[b, :, z_start:z_end, y_start:y_end, x_start:x_end]  # Keep the channel dimension
-            subvolumes_list.append(subvolume.unsqueeze(0))
-        subvolumes = torch.cat(subvolumes_list, dim=0)
-        return subvolumes
 
-    @staticmethod
-    def extract_label_subvolumes(tensor, coord_generator):
-        tensor = tensor.cpu()
-        assert tensor.dim() == 4, "Expected tensor of 4 dimensions (batch, depth, height, width)"
-        batch_size = tensor.shape[0]
-        coords = coord_generator.get_coordinates(mode="train")  # Assuming you want a random subcube
-        subvolumes_list = []
-        for b in range(batch_size):
-            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coords
-            subvolume = tensor[b, z_start:z_end, y_start:y_end, x_start:x_end]
-            subvolumes_list.append(subvolume.unsqueeze(0))
-        subvolumes = torch.cat(subvolumes_list, dim=0)
-        return subvolumes
+        # Extract MRI subvolumes
+        assert mri_tensor.dim() == 5, "Expected MRI tensor of 5 dimensions (batch, channel, depth, height, width)"
+        mri_subvolumes = MongoDataLoader._extract_from_tensor(mri_tensor, coords, channel_dim=True)
 
+        # Extract label subvolumes
+        assert label_tensor.dim() == 4, "Expected label tensor of 4 dimensions (batch, depth, height, width)"
+        label_subvolumes = MongoDataLoader._extract_from_tensor(label_tensor, coords, channel_dim=False)
 
+        return mri_subvolumes, label_subvolumes
     
+    @staticmethod
+    def _extract_from_tensor(tensor, coords, channel_dim=False):
+        tensor = tensor.cpu()
+        batch_size = tensor.shape[0]
+        subvolumes_list = []
+        for b in range(batch_size):
+            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coords
+            if channel_dim:
+                subvolume = tensor[b, :, z_start:z_end, y_start:y_end, x_start:x_end]  # Keep the channel dimension
+            else:
+                subvolume = tensor[b, z_start:z_end, y_start:y_end, x_start:x_end]
+            subvolumes_list.append(subvolume.unsqueeze(0))
+        
+        subvolumes = torch.cat(subvolumes_list, dim=0)
+        return subvolumes
