@@ -1,0 +1,9 @@
+[submodule "path/to/submodule/directory"]
+	path = path/to/submodule/directory
+	url = https://github.com/Beckschen/TransUNet.git
+[submodule "transunet"]
+	path = transunet
+	url = https://github.com/Beckschen/TransUNet.git
+[submodule "TransUNet"]
+	path = TransUNet
+	url = https://github.com/Beckschen/TransUNet.git
