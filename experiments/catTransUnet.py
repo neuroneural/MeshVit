@@ -9,7 +9,7 @@ from catalyst.callbacks import CheckpointCallback
 from catalyst.contrib.utils.pandas import dataframe_to_list
 from catalyst.data import BatchPrefetchLoaderWrapper, ReaderCompose
 from catalyst.dl import Runner, SchedulerCallback
-
+from custom_epoch_metrics_callback import * 
 from catalyst.metrics.functional._segmentation import dice
 from model import MeshNet, UNet
 import nibabel as nib
@@ -25,7 +25,18 @@ from mongoutil import *
 import torch.nn as nn
 from mongoutil import MongoDataLoader
 
+import sys
+sys.path.append('/data/users2/washbee/MeshVit') #change this path
+sys.path.append('/data/users2/washbee/MeshVit/TransUNet') #change this path
+from segmenter.segm.model.decoder3d import MaskTransformer3d  #check sys.path.append
+from segmenter.segm.model.segmenter3d import Segmenter3d #check sys.path.append
+from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.append
+
 import os
+
+from TransUNet.networks.vit_seg_modeling import VisionTransformer as ViT_seg
+from TransUNet.networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
+
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # assuming you want to use GPU 0
 
@@ -41,11 +52,7 @@ print(torch.cuda.device_count())
 
 
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(batch_size=2,labelnow_choice=1)  # Change labelnow_choice as needed
-
-
-
-# Now you can use train_loader, valid_loader, and test_loader as needed
+loader = MongoDataLoader(batch_size=1,labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 def get_loaders(
@@ -257,7 +264,7 @@ def get_model_memory_size(model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",
@@ -273,126 +280,138 @@ if __name__ == "__main__":
         metavar="N",
         help="Number of total subvolumes to sample from one brain",
     )
-    parser.add_argument("--sv_w", default=38, type=int, metavar="N", help="Width of subvolumes")
-    parser.add_argument(
-        "--sv_h", default=38, type=int, metavar="N", help="Height of subvolumes",
-    )
-    parser.add_argument("--sv_d", default=38, type=int, metavar="N", help="Depth of subvolumes")
-    parser.add_argument("--model", default="meshnet")
-    #parser.add_argument("--model", default="unet")
     parser.add_argument(
         "--dropout", default=0.1, type=float, metavar="N", help="dropout probability for meshnet",
     )
-    parser.add_argument("--large", action="store_true")
-    parser.add_argument("--no-large", action="store_false", dest="large")
     parser.add_argument(
-        "--n_epochs", default=1, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=2, type=int, metavar="N", help="number of total epochs to run",
     )
-    parser.add_argument('--subvolume_size', type=int, required=True)
+    #parser.add_argument('--subvolume_size', type=int, required=True)
     parser.add_argument('--patch_size', type=int, required=True)
-    parser.add_argument('--n_layers', type=int, required=True)
-    parser.add_argument('--d_model', type=int, required=True)
-    parser.add_argument('--d_ff', type=int, required=True)
-    parser.add_argument('--n_heads', type=int, required=True)
-    parser.add_argument('--d_encoder', type=int, required=True)
-    parser.add_argument('--lr', type=float, required=True)
-
+    parser.add_argument('--vit_choice', type=int, required=True)
+    
 
     args = parser.parse_args()
-    print("{}".format(args))
-
-    volume_shape = [256, 256, 256]
-    #subvolume_shape = [args.sv_h, args.sv_w, args.sv_d]
-    subvolume_shape = [args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]
-    train_loaders, infer_loaders = get_loaders(
-        0,
-        volume_shape,
-        subvolume_shape,
-        args.train_subvolumes,
-        args.infer_subvolumes,
-        #batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        colname='HCP'
-    )
-
-    if args.model == "meshnet":
-        print('creating meshnet.')
-        net = MeshNet(
-            n_channels=1, n_classes=args.n_classes, large=args.large, dropout_p=args.dropout,
-        ).cuda()
-    else:
-        print('creating unet')
-        net = UNet(n_channels=1, n_classes=args.n_classes).cuda()
     
-    import uuid
-    unique_id = str(uuid.uuid4())
+    completed = False
+    try:
     
-    logdir = f"logs/{args.model}"
-    logdir += f"_e{args.n_epochs}"
-    if args.n_classes == 3:
-        logdir+="_gmwm"
-    if args.model == "meshnet" and args.large:
-        logdir += "_large"
-    if args.model == "meshnet" and not args.large:
-        logdir += "_nolarge"
+        print("{}".format(args))
+
+        assert args.train_subvolumes == 64
+        volume_shape = [256, 256, 256]
+        subvolume_shape = [args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]
+        train_loaders, infer_loaders = get_loaders(
+            0,
+            volume_shape,
+            subvolume_shape,
+            args.train_subvolumes,
+            args.infer_subvolumes,
+            num_workers=args.num_workers,
+            colname='HCP'
+        )
+
+        # vit = VisionTransformer3d(subvolume_shape, args.patch_size, args.n_layers, args.d_model, args.d_ff, args.n_heads, args.n_classes, 
+        #     dropout=0.1,
+        #     drop_path_rate=0.0,
+        #     distilled=False,
+        #     channels=1)
+        # drop_path_rate=0.0
+        # dropout=0.1
+        # # decoder = MaskTransformer3d(args.n_classes, args.patch_size,args.d_encoder, args.n_layers, args.n_heads, args.d_model, args.d_ff, drop_path_rate, dropout)
+        # net = Segmenter3d(vit, decoder, n_cls=args.n_classes).cuda()
         
-    if args.dropout:
-        logdir += "_dropout"
+        assert args.vit_choice < len(CONFIGS_ViT_seg.keys()) # < 8 
 
-    logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
-    
-    logdir+= f"_{unique_id}"
-    
-    from torch.optim.lr_scheduler import OneCycleLR
+        # Convert to a list (optional)
+        keys_list = list(CONFIGS_ViT_seg.keys())
 
-    # ... other code ...
+        vit_name = keys_list[args.vit_choice]
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)  # initial learning rate
-    print('steps per epoch', len(train_loaders['train']))
-    scheduler = OneCycleLR(optimizer, max_lr=0.001, epochs=args.n_epochs,
-                           steps_per_epoch=len(train_loaders["train"]),
-                           div_factor=10.0, final_div_factor=100.0)
+        config_vit = CONFIGS_ViT_seg[vit_name]
+        config_vit.n_skip = 0 #default
+        config_vit.n_classes = args.n_classes
+        
+        if vit_name.find('R50') != -1:
+            config_vit.patches.grid = (int(args.train_subvolumes / args.patch_size), int(args.train_subvolumes / args.patch_size))
+        net = ViT_seg(config_vit, img_size=args.train_subvolumes, num_classes=config_vit.n_classes).cuda()
+        #net.load_from(weights=np.load(config_vit.pretrained_path))
+        
+        
+        modelsize = CustomEpochMetricsCallback.get_model_memory_size(net)
+        
+        print("modelsize is ", modelsize)
+        
+        import uuid
+        unique_id = str(uuid.uuid4())
+        
+        logdir = f"logs/transunet"
+        logdir += f"_e{args.n_epochs}"
+        if args.n_classes == 3:
+            logdir+="_gmwm"    
+        logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
+        
+        logdir+= f"_{unique_id}"
+        customEpochMetricsCallback = CustomEpochMetricsCallback( "macro_dice", 64, args.patch_size, "NA", "NA", "NA", "NA", "NA", modelsize,
+            filename = '/data/users2/washbee/MeshVit/experiments/transunet_hsearch_8choice.log',
+            logdir=logdir)
+        
+        print(f'logdir is {logdir}')
+        #from torch.optim.lr_scheduler import OneCycleLR
 
-    # ... other code ...
+        # ... other code ...
 
-    
-    #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
+        optimizer = torch.optim.Adam(net.parameters(), lr=0.001)  # initial learning rate
+        print('steps per epoch', len(train_loaders['train']))
+        scheduler = OneCycleLR(optimizer, max_lr=0.001, epochs=args.n_epochs,
+                               steps_per_epoch=len(train_loaders["train"]),
+                               div_factor=10.0, final_div_factor=100.0)
 
-    runner = CustomRunner(n_classes=args.n_classes, 
-            coords_generator = CoordsGenerator(
-                list_shape=[256, 256, 256],
-                list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
-                batch_size=args.batch_size,
-                distributed=True
-            )
-    import logging
+        # ... other code ...
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
-    # Then, anywhere you want to log something:
- 
-    print("Begin Runner.")
-    from catalyst.dl import CheckpointCallback
-
-    
-    checkpoint_callback = CheckpointCallback(
-        save_n_best=10,  # Number of best models to save
-        loader_key="valid",  # Loader key to save the best models by
-        minimize=False,  # Whether we want to minimize or maximize the metric. If True, will try to minimize, otherwise - maximize
-        metric_key="macro_dice",  
-        logdir=logdir
-    )
-
-
-    runner.train(
-        model=net,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        loaders=train_loaders,
-        num_epochs=args.n_epochs,
-        callbacks=[checkpoint_callback
-                   ],
-        logdir=logdir,
-        verbose=True,
-    )
+        
+        #assert args.batch_size == 4
+        runner = CustomRunner(n_classes=args.n_classes, 
+                coords_generator = CoordsGenerator(
+                    list_shape=[256, 256, 256],
+                    list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
+                    batch_size=args.batch_size,
+                    distributed=True
+                )
+        
+        print("Begin Runner.")
+        
+        checkpoint_callback = CheckpointCallback(
+            save_n_best=10,  # Number of best models to save
+            loader_key="valid",  # Loader key to save the best models by
+            minimize=False,  # Whether we want to minimize or maximize the metric. If True, will try to minimize, otherwise - maximize
+            metric_key="macro_dice",  
+            logdir=logdir
+        )
+        runner.train(
+            model=net,
+            scheduler=scheduler,
+            optimizer=optimizer,
+            loaders=train_loaders,
+            num_epochs=args.n_epochs,
+            logdir=logdir,
+            verbose=True,
+            callbacks=[checkpoint_callback,customEpochMetricsCallback]
+        )
+        completed = True
+        
+    except torch.cuda.CudaError as e:
+        print("torch.cuda.CudaError caught",e)
+    except Exception as e:
+        print('exception caught',e)
+        import traceback
+        traceback.print_exc()
+    except BaseException as e:
+        print('base exception caught',e)
+    finally:
+        print("finally")
+        if not completed:
+            CustomEpochMetricsCallback.log_hyperparams(64, args.patch_size, "NA", "NA","NA", "NA", "NA", "NA", "NA", False, "Not Completed","NA",
+                filename = '/data/users2/washbee/MeshVit/experiments/transunet_hsearch_8choice.log',
+                logdir="NA")
+        

@@ -50,7 +50,7 @@ print(torch.cuda.device_count())
 
 
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(batch_size=8,labelnow_choice=1)  # Change labelnow_choice as needed
+loader = MongoDataLoader(batch_size=2,labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 def get_loaders(
@@ -178,16 +178,8 @@ class CustomRunner(Runner):
         
         # Modify the batch size to use the one passed from get_loaders
         x, y = batch  # Assuming that the batch contains a tuple (x, y)
-        # import logging
-
-        # Configure logging settings
-        # logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-        # # Get a logger instance
-        # logger = logging.getLogger()
-        # logger.debug(f'{y.shape}, {torch.max(y)}, {torch.min(y)}')
-        x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
-        # logger.debug(f'{y.shape}, {torch.max(y)}, {torch.min(y)}')
+        
+        #!x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
         
         assert x.shape[0] == y.shape[0]
         self.countSubjects += x.shape[0]
@@ -195,7 +187,6 @@ class CustomRunner(Runner):
             self.optimizer.zero_grad()
 
         y_hat = self.model(x.cuda())
-        # logger.debug(f'{y_hat.shape}, {torch.max(y_hat)}, {torch.min(y_hat)}')
         
         loss = self.criterion(y_hat.cuda(), y.cuda())
 
@@ -265,7 +256,7 @@ def get_model_memory_size(model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
-    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",

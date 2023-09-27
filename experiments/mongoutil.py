@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
-from mongoslabs.gencoords import CoordsGenerator
+from fixed_coords_generator import FixedCoordGenerator
+
 from mongo_loader import (
     create_client,
     collate_subcubes,
@@ -10,7 +11,7 @@ from mongo_loader import (
     mtransform,
 )
 import torch
-
+import random 
 import easybar
 
 from torch.utils.data import DataLoader, Dataset, RandomSampler, BatchSampler
@@ -23,8 +24,6 @@ class MongoDataLoader:
     # Do not modify the following block
     
     def __init__(self, batch_size=1, labelnow_choice=1, COLLECTION="HCP"):
-        self.volume_shape = [256]*3
-        self.subvolume_shape = [64]*3 
         self.LABELNOW=["sublabel", "gwmlabel", "50label"][labelnow_choice]
         self.MONGOHOST = "arctrdcn018.rs.gsu.edu"
         self.DBNAME = 'MindfulTensors'
@@ -37,7 +36,6 @@ class MongoDataLoader:
 
         self.INDEX_ID = "subject"
         self.VIEWFIELDS = ["subdata", self.LABELNOW, "id", "subject"]
-        self.coord_generator = CoordsGenerator(self.volume_shape, self.subvolume_shape)
         self.batched_subjs = self.batch_size
         self.client = MongoClient("mongodb://" + self.MONGOHOST + ":27017")
         self.db = self.client[self.DBNAME]
@@ -72,15 +70,12 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        #train_sampler = MBatchSampler(train_dataset, batch_size=self.batch_size)
         random_sampler = RandomSampler(train_dataset)
         batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
 
         train_loader = DataLoader(
             train_dataset,
-            #sampler=train_sampler,
             sampler=batch_sampler,
-            #batch_size=self.batch_size,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
@@ -95,16 +90,12 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        #valid_sampler = MBatchSampler(valid_dataset, batch_size=self.batch_size)
         random_sampler = RandomSampler(valid_dataset)
         batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
 
         valid_loader = DataLoader(
             valid_dataset,
-            #sampler=valid_sampler,
             sampler=batch_sampler,
-            #batch_size=self.batch_size,
-            #shuffle=True,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
@@ -118,16 +109,12 @@ class MongoDataLoader:
             id=self.INDEX_ID,
             fields=self.VIEWFIELDS,
         )
-        #test_sampler = MBatchSampler(test_dataset, batch_size=self.batch_size)
         random_sampler = RandomSampler(test_dataset)
         batch_sampler = BatchSampler(random_sampler, batch_size=self.batch_size, drop_last=False)
 
         test_loader = DataLoader(
             test_dataset,
-            #sampler=test_sampler,
             sampler=batch_sampler,
-            #batch_size=self.batch_size,
-            #shuffle=True,
             collate_fn=self.mycollate_full,
             pin_memory=True,
             worker_init_fn=self.createclient,
@@ -139,7 +126,12 @@ class MongoDataLoader:
     @staticmethod
     def extract_subvolumes(mri_tensor, label_tensor, coord_generator):
         # Generate coordinates
+        batch_size = mri_tensor.shape[0]
         coords = coord_generator.get_coordinates(mode="train")  # Assuming you want a random subcube
+        cl = []
+        for b in range(batch_size): 
+            cl.append(random.choice(coords))
+        coords = cl
 
         # Extract MRI subvolumes
         assert mri_tensor.dim() == 5, "Expected MRI tensor of 5 dimensions (batch, channel, depth, height, width)"
@@ -157,7 +149,7 @@ class MongoDataLoader:
         batch_size = tensor.shape[0]
         subvolumes_list = []
         for b in range(batch_size):
-            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coords
+            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coords[b]
             if channel_dim:
                 subvolume = tensor[b, :, z_start:z_end, y_start:y_end, x_start:x_end]  # Keep the channel dimension
             else:
