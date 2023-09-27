@@ -24,6 +24,7 @@ from tqdm import tqdm
 from mongoutil import *
 import torch.nn as nn
 from mongoutil import MongoDataLoader
+from fixed_coords_generator import FixedCoordGenerator
 
 import os
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -38,15 +39,10 @@ args = None
 import torch
 print(torch.cuda.device_count())
 
-
-
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(batch_size=2,labelnow_choice=1)  # Change labelnow_choice as needed
-
-
+loader = MongoDataLoader(batch_size=1,labelnow_choice=1)  # Change labelnow_choice as needed
 
 # Now you can use train_loader, valid_loader, and test_loader as needed
-
 
 def get_loaders(
     random_state: int,
@@ -86,7 +82,7 @@ def get_loaders(
 class CustomRunner(Runner):
     """Custom Runner for demonstrating a NeuroImaging Pipeline"""
 
-    def __init__(self, n_classes: int, coords_generator: CoordsGenerator, batch_size: int, distributed:bool):
+    def __init__(self, n_classes: int, coords_generator: FixedCoordGenerator, batch_size: int, distributed:bool):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
@@ -173,13 +169,13 @@ class CustomRunner(Runner):
         
         # Modify the batch size to use the one passed from get_loaders
         x, y = batch  # Assuming that the batch contains a tuple (x, y)
-        import logging
+        #import logging
 
         # Configure logging settings
-        logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+        #logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
         # Get a logger instance
-        logger = logging.getLogger()
+        #logger = logging.getLogger()
 
         x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
 
@@ -257,7 +253,7 @@ def get_model_memory_size(model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",
@@ -286,17 +282,8 @@ if __name__ == "__main__":
     parser.add_argument("--large", action="store_true")
     parser.add_argument("--no-large", action="store_false", dest="large")
     parser.add_argument(
-        "--n_epochs", default=1, type=int, metavar="N", help="number of total epochs to run",
+        "--n_epochs", default=100, type=int, metavar="N", help="number of total epochs to run",
     )
-    parser.add_argument('--subvolume_size', type=int, required=True)
-    parser.add_argument('--patch_size', type=int, required=True)
-    parser.add_argument('--n_layers', type=int, required=True)
-    parser.add_argument('--d_model', type=int, required=True)
-    parser.add_argument('--d_ff', type=int, required=True)
-    parser.add_argument('--n_heads', type=int, required=True)
-    parser.add_argument('--d_encoder', type=int, required=True)
-    parser.add_argument('--lr', type=float, required=True)
-
 
     args = parser.parse_args()
     print("{}".format(args))
@@ -342,6 +329,7 @@ if __name__ == "__main__":
     logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
     
     logdir+= f"_{unique_id}"
+    print("logdir\n", logdir)
     
     from torch.optim.lr_scheduler import OneCycleLR
 
@@ -353,18 +341,12 @@ if __name__ == "__main__":
                            steps_per_epoch=len(train_loaders["train"]),
                            div_factor=10.0, final_div_factor=100.0)
 
-    # ... other code ...
-
-    
-    #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1, verbose=True)
-
     runner = CustomRunner(n_classes=args.n_classes, 
-            coords_generator = CoordsGenerator(
-                list_shape=[256, 256, 256],
-                list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
+                coords_generator = FixedCoordGenerator(256, args.train_subvolumes),
                 batch_size=args.batch_size,
                 distributed=True
             )
+
     import logging
 
     logger = logging.getLogger(__name__)
