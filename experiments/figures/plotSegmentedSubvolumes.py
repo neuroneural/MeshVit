@@ -185,15 +185,55 @@ with torch.no_grad():
         print("class_predictions.shape,coord",class_prediction.shape,coord)
         predictions_list.append((class_prediction,coord))
 
-
 reconstructed_prediction = mongo_loader.reconstitute_volume(predictions_list, (256, 256, 256))
 
 print("reconstructed_prediction.shape", reconstructed_prediction.shape)
 assert reconstructed_prediction.shape == (256,256,256)
-# Apply softmax to the predictions along the channel dimension
-#exit()
+
 display_slices(mri_tensors[0][0].cpu().numpy(), 
                label_tensors[0].cpu().numpy(), 
                reconstructed_prediction.cpu().numpy(), 
                128, 
                save_dir='./3DVit_figs',name='3DVit')
+
+
+from model import MeshNet, UNet
+model = MeshNet(
+n_channels=1, n_classes=3, large=True, dropout_p=0.1
+)
+model_path = "/data/users2/washbee/MeshVit/experiments/logs/meshnet_e100_gmwm_large_dropout_sv128_927e1a09-6b00-4434-bb1d-2e9568a5abad/best_full.pth"
+checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
+
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+# If you're using CUDA
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# 3.2 Run predictions
+predictions_list = []
+with torch.no_grad():
+    subvolumes = mri_subvolumes_list[0]#.to(device)
+    
+    for subvolume, coord in subvolumes:
+        print("subvolume.shape",subvolume.shape)
+        prediction = model(subvolume)
+        prediction = prediction.cpu()  # Move predictions to CPU for further processing
+        softmax_prediction = torch.nn.functional.softmax(prediction, dim=1)
+        # Get the class prediction by taking the argmax along the channel dimension
+        class_prediction = torch.argmax(softmax_prediction, dim=1)
+        print("class_predictions.shape,coord",class_prediction.shape,coord)
+        predictions_list.append((class_prediction,coord))
+
+reconstructed_prediction = mongo_loader.reconstitute_volume(predictions_list, (256, 256, 256))
+
+print("reconstructed_prediction.shape", reconstructed_prediction.shape)
+assert reconstructed_prediction.shape == (256,256,256)
+
+display_slices(mri_tensors[0][0].cpu().numpy(), 
+               label_tensors[0].cpu().numpy(), 
+               reconstructed_prediction.cpu().numpy(), 
+               128, 
+               save_dir='./meshnet_figs',name='meshnet')
+
