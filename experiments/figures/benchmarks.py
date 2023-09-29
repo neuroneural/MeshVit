@@ -12,15 +12,42 @@ from segmenter.segm.model.decoder3d import MaskTransformer3d  #check sys.path.ap
 from segmenter.segm.model.segmenter3d import Segmenter3d #check sys.path.append
 from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.append
 
-modeltrain = False 
+import argparse
+
+parser = argparse.ArgumentParser(description="Script to handle model parameters.")
+
+# Add arguments to the parser
+parser.add_argument("--modeltrain", type=bool, default=False, help="Model train flag. True or False.")
+parser.add_argument("--model_choice", type=int, choices=[1, 2, 3, 4, 5], default=1, help="Model choice. Integer between 1-5.")
+parser.add_argument("--subvolume_size", type=int, choices=[1, 2], default=2, help="Subvolume size. Integer 1 or 2.")
+
+# Parse the arguments
+args = parser.parse_args()
+
+import csv
+import os
+
+# Path to the CSV file
+csv_file = 'benchmarks_results.csv'
+
+# Check if the CSV file exists
+if not os.path.exists(csv_file):
+    # Create the CSV file and write the header
+    with open(csv_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Model', 'Setting', 'Resolution', 'Time', 'GPU'])
+
+
+
+
+modeltrain = args.modeltrain 
 criterion = None
 if modeltrain:
     criterion = nn.CrossEntropyLoss()
 
-model_choice = 5
-subvolume_size = 2
-model_list = ['unet','meshnet_large','meshnet', '3dvit_large','3dvit_small']
-
+model_choice = args.model_choice
+subvolume_size = args.subvolume_size
+model_list = ['Unet','Meshnet_large','Meshnet', '3DVit_large','3DVit']
 if model_choice == 1:
     model = nets.UNet(
         dimensions=3,
@@ -93,7 +120,7 @@ else:
     print('model train')
     model = model.train()
 batch_size = 1#powers of 2. unet maxed out 32. 
-num_epochs = 10
+num_epochs = 1
 for i in range(num_epochs):
     # Generate some dummy data for inference
     dummy_data = None
@@ -124,6 +151,18 @@ for i in range(num_epochs):
         import traceback
         traceback.print_exc()
         print('exception occurrred') 
+        setting = "inference"
+        if modeltrain:
+            setting = "train"
+        resolution = 128
+        if subvolume_size == 2:
+            resolution = 256
+        
+        with open(csv_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([model_list[model_choice-1], setting, resolution, "", ""])
+        import time
+        time.sleep(10)
         exit()       
     end_time = time.time()
     inference_time = end_time - start_time
@@ -143,31 +182,23 @@ for i in range(num_epochs):
     del dummy_data
     torch.cuda.empty_cache()
 
-# # Generate some dummy data for inference
-# dummy_data = torch.randn(2, 1, 128,128,128).cuda()
+    # Variables to append
+    model = "Unet"
+    setting = "train"
+    resolution = 256
+    time = 0.5
+    gpu = 0.3
 
-# # Measure initial GPU memory consumption
-# initial_memory_allocated = torch.cuda.memory_allocated()
-# initial_memory_cached = torch.cuda.memory_cached()
-
-# Time the inference process
-# start_time = time.time()
-# with torch.no_grad():
-#     outputs = model(dummy_data)
-# end_time = time.time()
-# inference_time = end_time - start_time
-
-# Measure final GPU memory consumption
-# final_memory_allocated = torch.cuda.memory_allocated()
-# final_memory_cached = torch.cuda.memory_cached()
-
-# memory_increase_allocated = final_memory_allocated - initial_memory_allocated
-# memory_increase_cached = final_memory_cached - initial_memory_cached
-
-# print(f"Inference Time: {inference_time:.4f} seconds")
-# print(f"GPU Memory Increase (allocated): {memory_increase_allocated / (1024 ** 2):.2f} MB")
-# print(f"GPU Memory Increase (cached): {memory_increase_cached / (1024 ** 2):.2f} MB")
-
-# # Cleanup to release GPU memory
-# del dummy_data
-# torch.cuda.empty_cache()
+    setting = "inference"
+    if modeltrain:
+        setting = "train"
+    resolution = 128
+    if subvolume_size == 2:
+        resolution = 256
+    
+    time = inference_time
+    gpu = f"{memory_increase_cached / (1024 ** 2):.2f}"
+    # Append variables to the CSV
+    with open(csv_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([model_list[model_choice-1], setting, resolution, time, gpu])
