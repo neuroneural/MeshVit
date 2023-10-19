@@ -158,3 +158,30 @@ class MongoDataLoader:
         
         subvolumes = torch.cat(subvolumes_list, dim=0)
         return subvolumes
+    
+    @staticmethod
+    def extract_all_subvolumes(mri_tensor, label_tensor, coord_generator):
+        # Generate coordinates
+        all_coords = coord_generator.get_coordinates(mode="train")
+
+        # Extract MRI subvolumes
+        assert mri_tensor.dim() == 5, "Expected MRI tensor of 5 dimensions (batch, channel, depth, height, width)"
+        mri_subvolumes_list = [(MongoDataLoader._extract_from_tensor(mri_tensor, [coord], channel_dim=True), coord) for coord in all_coords]
+
+        # Extract label subvolumes
+        assert label_tensor.dim() == 4, "Expected label tensor of 4 dimensions (batch, depth, height, width)"
+        label_subvolumes_list = [(MongoDataLoader._extract_from_tensor(label_tensor, [coord], channel_dim=False), coord) for coord in all_coords]
+
+        return mri_subvolumes_list, label_subvolumes_list
+
+    @staticmethod
+    def reconstitute_volume(subvolumes_list, original_shape):
+        # Initialize a zero tensor of the original shape
+        reconstructed = torch.zeros(original_shape, dtype=subvolumes_list[0][0].dtype)
+
+        # Iterate over subvolumes and their coordinates to place them back into the volume
+        for (subvolume, coord) in subvolumes_list:
+            (z_start, z_end), (y_start, y_end), (x_start, x_end) = coord
+            reconstructed[z_start:z_end, y_start:y_end, x_start:x_end] += subvolume.squeeze()
+
+        return reconstructed

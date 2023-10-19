@@ -14,6 +14,8 @@ _, _, test_loader = mongo_loader.get_mongo_loaders()
 
 data_iter = iter(test_loader)
 mri_tensors, label_tensors = next(data_iter)
+copy_mri = mri_tensors.clone()
+assert torch.equal(copy_mri,mri_tensors)
 print('Database')
 print("mri_tensors.shape","label_tensors.shape",mri_tensors.shape,label_tensors.shape)
 #print('Fake')
@@ -67,43 +69,6 @@ for i in range(batch_size):
 import torch
 import monai.networks.nets as nets
 
-model_path = "/data/users2/washbee/MeshVit/experiments/logs/monaiunet_e100_gmwm_sv128_be768142-3d25-49a0-b088-1f4bef64846b/best_full.pth"
-
-
-checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
-print('checkpoint keys')
-#for key in checkpoint:
-#    print(key)
-
-model = nets.UNet(
-    dimensions=3,
-    in_channels=1,
-    out_channels=3,
-    channels=(16, 32, 64, 128, 256),
-    strides=(2, 2, 2, 2),
-    num_res_units=2
-    )
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
-
-# If you're using CUDA
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-
-# 3.2 Run predictions
-with torch.no_grad():
-    mri_tensors = mri_tensors.to(device)
-    predictions = model(mri_tensors)
-    
-    predictions = predictions.cpu()  # Move predictions to CPU for further processing
-
-print("predictions.shape", predictions.shape)
-assert predictions.shape == (1,3,256,256,256) #trained on subvolume, but produces full volume. 
-# Apply softmax to the predictions along the channel dimension
-softmax_predictions = torch.nn.functional.softmax(predictions, dim=1)
-
-# Get the class prediction by taking the argmax along the channel dimension
-class_predictions = torch.argmax(softmax_predictions, dim=1)
 
 # 4. Display MRI, Original Label, and Prediction
 def display_slices(mri, original_label, predicted_label, slice_num, save_dir='./saved_figs',name = ""):
@@ -127,12 +92,52 @@ def display_slices(mri, original_label, predicted_label, slice_num, save_dir='./
     fig.savefig(save_path, format='png')
     plt.close(fig)
 
-# Displaying the first MRI volume's slice 128
+
+model_path = "/data/users2/washbee/MeshVit/experiments/logs/monaiunet_e100_gmwm_sv128_be768142-3d25-49a0-b088-1f4bef64846b/best_full.pth"
+
+checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
+model = nets.UNet(
+            dimensions=3,
+            in_channels=1,
+            out_channels=3,#3 classes
+            channels=(16, 32, 64, 128, 256),
+            strides=(2, 2, 2, 2),
+            num_res_units=2,
+        )
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+# If you're using CUDA
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# 3.2 Run predictions
+predictions_list = []
+with torch.no_grad():
+    subvolumes = mri_subvolumes_list[0]#.to(device)
+    
+    for subvolume, coord in subvolumes:
+        print("subvolume.shape",subvolume.shape)
+        prediction = model(subvolume)
+        prediction = prediction.cpu()  # Move predictions to CPU for further processing
+        softmax_prediction = torch.nn.functional.softmax(prediction, dim=1)
+        # Get the class prediction by taking the argmax along the channel dimension
+        class_prediction = torch.argmax(softmax_prediction, dim=1)
+        print("class_predictions.shape,coord",class_prediction.shape,coord)
+        predictions_list.append((class_prediction,coord))
+
+reconstructed_prediction = mongo_loader.reconstitute_volume(predictions_list, (256, 256, 256))
+
+print("reconstructed_prediction.shape", reconstructed_prediction.shape)
+assert reconstructed_prediction.shape == (256,256,256)
+
+assert torch.equal(copy_mri,mri_tensors)
+
 display_slices(mri_tensors[0][0].cpu().numpy(), 
                label_tensors[0].cpu().numpy(), 
-               class_predictions[0].cpu().numpy(), 
+               reconstructed_prediction.cpu().numpy(), 
                128, 
-               save_dir='./unet_figs',name='unet_')
+               save_dir='./unet_figs',name='unet')
 
 import sys
 sys.path.append('/data/users2/washbee/MeshVit') #change this path
@@ -140,7 +145,6 @@ sys.path.append('/data/users2/washbee/MeshVit') #change this path
 from segmenter.segm.model.decoder3d import MaskTransformer3d  #check sys.path.append
 from segmenter.segm.model.segmenter3d import Segmenter3d #check sys.path.append
 from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.append
-
 
 subvolume_shape = [128,128,128]
 patch_size = 16
@@ -190,6 +194,8 @@ reconstructed_prediction = mongo_loader.reconstitute_volume(predictions_list, (2
 print("reconstructed_prediction.shape", reconstructed_prediction.shape)
 assert reconstructed_prediction.shape == (256,256,256)
 
+assert torch.equal(copy_mri,mri_tensors)
+
 display_slices(mri_tensors[0][0].cpu().numpy(), 
                label_tensors[0].cpu().numpy(), 
                reconstructed_prediction.cpu().numpy(), 
@@ -215,7 +221,6 @@ model.to(device)
 predictions_list = []
 with torch.no_grad():
     subvolumes = mri_subvolumes_list[0]#.to(device)
-    
     for subvolume, coord in subvolumes:
         print("subvolume.shape",subvolume.shape)
         prediction = model(subvolume)
@@ -230,10 +235,11 @@ reconstructed_prediction = mongo_loader.reconstitute_volume(predictions_list, (2
 
 print("reconstructed_prediction.shape", reconstructed_prediction.shape)
 assert reconstructed_prediction.shape == (256,256,256)
+assert torch.equal(copy_mri,mri_tensors)
 
 display_slices(mri_tensors[0][0].cpu().numpy(), 
-               label_tensors[0].cpu().numpy(), 
-               reconstructed_prediction.cpu().numpy(), 
-               128, 
-               save_dir='./meshnet_figs',name='meshnet')
+    label_tensors[0].cpu().numpy(), 
+    reconstructed_prediction.cpu().numpy(), 
+    128, 
+    save_dir='./meshnet_figs',name='meshnet')
 

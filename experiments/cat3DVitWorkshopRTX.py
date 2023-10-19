@@ -35,7 +35,6 @@ from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.appen
 
 import os
 
-
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
     
 args = None

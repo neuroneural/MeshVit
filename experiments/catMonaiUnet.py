@@ -34,23 +34,15 @@ from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.appen
 import os
 
 import monai.networks.nets as nets
+from fixed_coords_generator import FixedCoordGenerator
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # assuming you want to use GPU 0
-
-# torch.backends.cudnn.enabled = True
-# torch.backends.cudnn.benchmark = True
-
-    
 args = None
 
 import torch
 print(torch.cuda.device_count())
 
-
-
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(batch_size=2,labelnow_choice=1)  # Change labelnow_choice as needed
+loader = MongoDataLoader(batch_size=1,labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 def get_loaders(
@@ -91,7 +83,7 @@ def get_loaders(
 class CustomRunner(Runner):
     """Custom Runner for demonstrating a NeuroImaging Pipeline"""
 
-    def __init__(self, n_classes: int, coords_generator: CoordsGenerator, batch_size: int, distributed:bool):
+    def __init__(self, n_classes: int, coords_generator: FixedCoordGenerator, batch_size: int):
         """Init."""
         super().__init__()
         self.n_classes = n_classes
@@ -100,8 +92,6 @@ class CustomRunner(Runner):
 
         self.criterion = nn.CrossEntropyLoss()  # for segmentation tasks
         self.batch_size = batch_size  # Store the batch size
-        self.num_subvolumes = (int)(256**3/64**3)
-        self.distributed = distributed
 
     def get_loaders(self, stage: str) -> "OrderedDict[str, DataLoader]":
         """Returns the loaders for a given stage."""
@@ -148,10 +138,6 @@ class CustomRunner(Runner):
         Calls scheduler step after an epoch ends using validation dice score
         """
 
-        # if runner.loader_key == "valid":  # Checking if it's the validation phase
-        #     print('validation phase')
-        #     dice_score = self.loader_metrics.get('macro_dice', None)
-        #     print('validation dice_score', dice_score)
         super().on_epoch_end(runner)
 
 
@@ -179,7 +165,7 @@ class CustomRunner(Runner):
         # Modify the batch size to use the one passed from get_loaders
         x, y = batch  # Assuming that the batch contains a tuple (x, y)
         
-        #!x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
+        x,y = MongoDataLoader.extract_subvolumes(x,y, self.coords_generator)
         
         assert x.shape[0] == y.shape[0]
         self.countSubjects += x.shape[0]
@@ -256,7 +242,7 @@ def get_model_memory_size(model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",
@@ -277,11 +263,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--n_epochs", default=100, type=int, metavar="N", help="number of total epochs to run",
-    )
-    #parser.add_argument('--subvolume_size', type=int, required=True)
-    #parser.add_argument('--patch_size', type=int, required=True)
-    #parser.add_argument('--vit_choice', type=int, required=True)
-    
+    )    
 
     args = parser.parse_args()
     
@@ -290,7 +272,6 @@ if __name__ == "__main__":
     
         print("{}".format(args))
 
-        assert args.train_subvolumes == 64
         volume_shape = [256, 256, 256]
         subvolume_shape = [args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]
         train_loaders, infer_loaders = get_loaders(
@@ -326,8 +307,11 @@ if __name__ == "__main__":
         logdir+= "_sv{sv}".format(sv=args.train_subvolumes)
         
         logdir+= f"_{unique_id}"
-        customEpochMetricsCallback = CustomEpochMetricsCallback( "macro_dice", 64, "NA", "NA", "NA", "NA", "NA", "NA", modelsize,
-            filename = '/data/users2/washbee/MeshVit/experiments/transunet_hsearch_8choice.log',
+        
+        print("logdir\n", logdir)
+        
+        customEpochMetricsCallback = CustomEpochMetricsCallback( "macro_dice", args.train_subvolumes, "NA", "NA", "NA", "NA", "NA", "NA", modelsize,
+            filename = '/data/users2/washbee/MeshVit/experiments/monaiunet_128sv.log',
             logdir=logdir)
         
         print(f'logdir is {logdir}')
@@ -344,13 +328,9 @@ if __name__ == "__main__":
         # ... other code ...
 
         
-        #assert args.batch_size == 4
         runner = CustomRunner(n_classes=args.n_classes, 
-                coords_generator = CoordsGenerator(
-                    list_shape=[256, 256, 256],
-                    list_sub_shape=[args.train_subvolumes, args.train_subvolumes, args.train_subvolumes]),
-                    batch_size=args.batch_size,
-                    distributed=True
+                coords_generator = FixedCoordGenerator(256, args.train_subvolumes),
+                    batch_size=args.batch_size
                 )
         
         print("Begin Runner.")
@@ -385,7 +365,7 @@ if __name__ == "__main__":
     finally:
         print("finally")
         if not completed:
-            CustomEpochMetricsCallback.log_hyperparams(64, "NA", "NA", "NA","NA", "NA", "NA", "NA", "NA", False, "Not Completed","NA",
-                filename = '/data/users2/washbee/MeshVit/experiments/transunet_hsearch_8choice.log',
+            CustomEpochMetricsCallback.log_hyperparams(args.train_subvolumes, "NA", "NA", "NA","NA", "NA", "NA", "NA", "NA", False, "Not Completed","NA",
+                filename = '/data/users2/washbee/MeshVit/experiments/monaiunet_128sv.log',
                 logdir="NA")
         

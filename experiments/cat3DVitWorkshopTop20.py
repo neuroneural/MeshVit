@@ -29,9 +29,9 @@ from fixed_coords_generator import FixedCoordGenerator
 import sys
 sys.path.append('/data/users2/washbee/MeshVit') #change this path
 
-from segmenter.segm.model.decoder3d import MaskTransformer3d  #check sys.path.append
-from segmenter.segm.model.segmenter3d import Segmenter3d #check sys.path.append
-from segmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.append
+from altsegmenter.segm.model.decoder3d import MaskTransformer3d  #check sys.path.append
+from altsegmenter.segm.model.segmenter3d import Segmenter3d #check sys.path.append
+from altsegmenter.segm.model.vit3d import VisionTransformer3d #check sys.path.append
 
 import os
 
@@ -44,7 +44,7 @@ print(torch.cuda.device_count())
 
 
 # Create an instance of MongoDataLoader with your desired labelnow_choice
-loader = MongoDataLoader(batch_size=4,labelnow_choice=1)  # Change labelnow_choice as needed
+loader = MongoDataLoader(batch_size=1,labelnow_choice=1)  # Change labelnow_choice as needed
 
 
 def get_loaders(
@@ -256,7 +256,7 @@ def get_model_memory_size(model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="T1 segmentation Training")
     parser.add_argument("--n_classes", default=3, type=int)
-    parser.add_argument("--batch_size", default=4, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument(
         "--train_subvolumes",
@@ -331,7 +331,7 @@ if __name__ == "__main__":
         
         logdir+= f"_{unique_id}"
         customEpochMetricsCallback = CustomEpochMetricsCallback( "macro_dice", args.train_subvolumes, args.patch_size, args.n_layers, args.d_model, args.d_ff, args.n_heads, args.d_encoder, modelsize,
-            filename = '/data/users2/washbee/MeshVit/experiments/3DVit_hsearch_Top20_fixed.log',
+            filename = '/data/users2/washbee/MeshVit/experiments/3DVit_hsearch_Top2_fixed.log',
             logdir=logdir)
         
         print(f'logdir is {logdir}')
@@ -348,7 +348,6 @@ if __name__ == "__main__":
         # ... other code ...
 
         
-        assert args.batch_size == 4
         runner = CustomRunner(n_classes=args.n_classes, 
                     coords_generator = FixedCoordGenerator(256, args.train_subvolumes),
                     batch_size=args.batch_size,
@@ -386,5 +385,5 @@ if __name__ == "__main__":
         print("finally")
         if not completed:
             CustomEpochMetricsCallback.log_hyperparams(args.train_subvolumes, args.patch_size, args.n_layers, args.d_model, args.d_ff, args.n_heads, args.d_encoder, .0005, "NA", False, "Not Completed","NA",
-                filename = '/data/users2/washbee/MeshVit/experiments/3DVit_hsearch_Top20_fixed.log')
+                filename = '/data/users2/washbee/MeshVit/experiments/3DVit_hsearch_Top2_fixed.log')
         

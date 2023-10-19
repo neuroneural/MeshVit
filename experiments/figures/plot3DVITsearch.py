@@ -4,7 +4,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 df = pd.read_csv('3DVit_128cf.csv')
 
 grouped = df.groupby(['subvolume_size', 'patch_size', 'n_layers', 'd_model', 'd_ff', 'n_heads', 'd_encoder']).agg({'dice_val_avg': 'max'}).reset_index()
@@ -35,4 +34,8 @@ plt.xlabel('dice_val_avg')
 plt.tight_layout()
 
 plt.savefig('3-1-1-3dviths.svg', format='svg')
+plt.savefig('3-1-1-3dviths.png', format='png')
 plt.close()
+
+grouped.to_csv('output_filename.csv', index=False)
+

@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=cat3DWS         
+#SBATCH --job-name=catUNWS         
 #SBATCH --nodes=1                      
 #SBATCH --mem=64G                      
 #SBATCH --cpus-per-task=8              
-#SBATCH --gres=gpu:RTX:1               
+#SBATCH --gres=gpu:A40:1               
 #SBATCH --time=4-00:00:00              
 #SBATCH -e jobs/%A_%a.err            
 #SBATCH -o jobs/%A_%a.out              
@@ -21,7 +21,7 @@ conda activate catmonai
 
 # Read values from the CSV file using SLURM_ARRAY_TASK_ID directly
 
-python catMonaiUnet.py #\
-#--patch_size 8 \
-#--vit_choice $SLURM_ARRAY_TASK_ID 
+python catMonaiUnet.py \
+--train_subvolumes 128
+
 sleep 5
