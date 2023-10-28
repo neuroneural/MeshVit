@@ -1,0 +1,153 @@
+Name,Self CPU %,Self CPU,CPU time %,CPU time,CPU Memory,Self CUDA %,Self CUDA,CUDA time %,CUDA time,CUDA Memory
+aten::slice,0.0034526849804750667,60,0.0022442452373087935,39.0,0,0.0,0,0.0,0.0,0
+aten::as_strided,0.004488490474617587,78,0.00014961634915391955,2.6,0,0.0,0,0.0,0.0,0
+aten::conv2d,0.0023593347366579623,41,6.978372115691152,121268.61538461539,0,0.0,0,0.3544738835996251,255.15384615384616,55402496
+aten::convolution,0.011163681436869383,194,6.978190628403716,121265.46153846153,0,0.0,0,0.3544738835996251,255.15384615384616,55402496
+aten::_convolution,0.013580560923201928,236,6.977331883677803,121250.53846153847,0,0.0,0,0.3544738835996251,255.15384615384616,55402496
+aten::cudnn_convolution,3.160069928379804,54915,6.974113804215233,121194.61538461539,0,4.144149150470263,2983,0.3312840033641356,238.46153846153845,55402496
+cudaStreamIsCapturing,0.0036828639791734044,64,5.845815839957784e-05,1.0158730158730158,0,0.0,0,0.0,0.0,0
+cudaMalloc,0.41932859087869684,7287,0.011648016413297133,202.41666666666666,0,0.0,0,0.0,0.0,0
+cudaGetDeviceCount,0.0,0,0.0,0.0,0,0.0,0,0.0,0.0,0
+cudaDriverGetVersion,0.0,0,0.0,0.0,0,0.0,0,0.0,0.0,0
+cudaDeviceGetAttribute,0.0002877237483729222,5,5.754474967458445e-06,0.1,0,0.03473138744946583,25,0.0006946277489893166,0.5,0
+cudaGetDeviceProperties,0.018644498894565358,324,0.009322249447282679,162.0,0,0.0027785109959572664,2,0.0013892554979786332,1.0,0
+cudaStreamCreateWithFlags,9.639205928490291,167508,0.3012251852653216,5234.625,0,0.10975118434031203,79,0.003429724510634751,2.46875,0
+cudaMemsetAsync,5.9596795447980115,103566,0.8513827921140017,14795.142857142857,0,0.0,0,0.0,0.0,0
+Memset (Device),0.0,0,0.0,0.0,0,0.07779830788680346,56,0.012966384647800576,9.333333333333334,0
+cudaHostAlloc,0.05829283142035404,1013,0.02914641571017702,506.5,0,0.0,0,0.0,0.0,0
+cudaHostGetDevicePointer,0.00017263424902375332,3,8.631712451187666e-05,1.5,0,0.0,0,0.0,0.0,0
+cudaFree,42.48126055226847,738230,5.310157569033559,92278.75,0,0.006946277489893167,5,0.0008682846862366458,0.625,0
+cudaGetSymbolAddress,0.00011508949934916889,2,0.00011508949934916889,2.0,0,0.0027785109959572664,2,0.0027785109959572664,2.0,0
+cudaStreamGetPriority,0.0002877237483729222,5,7.57167758876111e-06,0.13157894736842105,0,0.0027785109959572664,2,7.311871041992806e-05,0.05263157894736842,0
+cudaDeviceGetStreamPriorityRange,0.00040281324772209107,7,1.0600348624265554e-05,0.18421052631578946,0,0.0027785109959572664,2,7.311871041992806e-05,0.05263157894736842,0
+aten::empty,0.04356137550366042,757,0.0014912660660349757,25.914893617021278,664,0.0,0,0.0,0.0,610447360
+cudaLaunchKernel,35.53313484231012,617487,0.06994711583131913,1215.525590551181,0,0.0,0,0.0,0.0,0
+"void cask_cudnn::computeOffsetsKernel<false, false>(cask_cudnn::ComputeOffsetsParams)",0.0,0,0.0,0.0,0,0.0041677664939359,3,0.0041677664939359,3.0,0
+cudnn_volta_scudnn_128x64_relu_small_nn_v1,0.0,0,0.0,0.0,0,0.05557021991914533,40,0.05557021991914533,40.0,0
+aten::reshape,0.005754474967458444,100,0.0005959991930581961,10.357142857142858,0,0.0,0,0.0,0.0,0
+aten::_reshape_alias,0.003510229730149651,61,0.00023401531534331005,4.066666666666666,0,0.0,0,0.0,0.0,0
+aten::add_,0.061745516400829106,1073,0.001059562500888908,18.412844036697248,8,7.389449993748349,5319,0.06779311920870046,48.79816513761468,0
+"void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_add<float> const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_add<float> const&)::{lambda(int)#1})",0.0,0,0.0,0.0,0,0.30146844306136344,217,0.023189880235489495,16.692307692307693,0
+aten::relu_,0.012659844928408577,220,0.0020025572886755386,34.8,0,0.0,0,0.01768985334092793,12.733333333333333,0
+aten::clamp_min_,0.009264704697608095,161,0.0011585676267816334,20.133333333333333,0,0.26534780011391895,191,0.01768985334092793,12.733333333333333,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::launch_clamp_scalar(at::TensorIteratorBase&, c10::Scalar, c10::Scalar, at::native::detail::ClampLimits)::{lambda()#1}::operator()() const::{lambda()#14}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2> >(int, at::native::(anonymous namespace)::launch_clamp_scalar(at::TensorIteratorBase&, c10::Scalar, c10::Scalar, at::native::detail::ClampLimits)::{lambda()#1}::operator()() const::{lambda()#14}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>)",0.0,0,0.0,0.0,0,0.26534780011391895,191,0.01768985334092793,12.733333333333333,0
+"void cudnn::winograd::generateWinogradTilesKernel<0, float, float>(cudnn::winograd::GenerateWinogradTilesParams<float, float>)",0.0,0,0.0,0.0,0,0.7627012683902696,549,0.03631910801858427,26.142857142857142,0
+cudnn_volta_scudnn_winograd_128x128_ldg1_ldg4_relu_tile148t_nt_v1,0.0,0,0.0,0.0,0,6.586460315916701,4741,0.3136409674246048,225.76190476190476,0
+aten::max_pool2d,0.00155370824121378,27,0.004868285822469843,84.6,0,0.0,0,0.02472874786401967,17.8,18692096
+aten::max_pool2d_with_indices,0.009149615198258926,159,0.004557544174227088,79.2,0,0.12364373932009837,89,0.02472874786401967,17.8,18692096
+"void at::native::(anonymous namespace)::max_pool_forward_nchw<float, float>(int, float const*, long, long, long, int, int, int, int, int, int, int, int, int, int, float*, long*)",0.0,0,0.0,0.0,0,0.12364373932009837,89,0.02472874786401967,17.8,0
+aten::adaptive_avg_pool2d,0.00046035799739667556,8,0.003567774479824235,62.0,0,0.0,0,0.011114043983829066,8.0,100352
+aten::_adaptive_avg_pool2d,0.0014961634915391954,26,0.00310741648242756,54.0,0,0.011114043983829066,8,0.011114043983829066,8.0,100352
+aten::resize_,0.0005754474967458444,10,0.0002877237483729222,5.0,0,0.0,0,0.0,0.0,100352
+"void at::native::(anonymous namespace)::adaptive_average_pool<float>(float*, float*, int, int, int, int, long, long, long)",0.0,0,0.0,0.0,0,0.011114043983829066,8,0.011114043983829066,8.0,0
+aten::flatten,0.0002877237483729222,5,0.0012084397431662733,21.0,0,0.0,0,0.0,0.0,0
+aten::linear,0.0020716109882850395,36,0.015901532493410166,276.3333333333333,0,0.0,0,0.3987163279198677,287.0,36864
+aten::t,0.004603579973966755,80,0.0005409206469410938,9.4,0,0.0,0,0.0,0.0,0
+aten::transpose,0.0020140662386104553,35,0.00022634268205336546,3.933333333333333,0,0.0,0,0.0,0.0,0
+aten::addmm,0.02192454962601667,381,0.01427109791929694,248.0,0,1.1961489837596033,861,0.3987163279198677,287.0,36864
+cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags,0.002992326983078391,52,4.7497253699656995e-05,0.8253968253968254,0,0.0,0,0.0,0.0,0
+"std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, float, float, float, float, false, true, true, false, 8, false, cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float> >(cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float>)",0.0,0,0.0,0.0,0,0.9877606590628082,711,0.9877606590628082,711.0,0
+aten::dropout,0.00046035799739667556,8,0.0043446286004311255,75.5,0,0.0,0,0.004862394242925216,3.5,40960
+aten::native_dropout,0.004546035224292171,79,0.004114449601732788,71.5,0,0.009724788485850433,7,0.004862394242925216,3.5,40960
+aten::empty_like,0.009092070448584342,158,0.001722346327065687,29.930555555555557,0,0.0,0,0.0,0.0,1109068288
+aten::empty_strided,0.03498720780214734,608,0.0011577319934530255,20.11881188118812,88,0.0,0,0.0,0.0,1108935168
+aten::cross_entropy_loss,0.00155370824121378,27,0.08390024502554412,1458.0,0,0.0,0,0.009724788485850433,7.0,5120
+aten::log_softmax,0.0005179027470712599,9,0.004028132477220911,70.0,0,0.0,0,0.005557021991914533,4.0,4096
+aten::to,0.003510229730149651,61,0.0002841825330083324,4.938461538461539,128,0.0,0,0.0,0.0,0
+aten::_log_softmax,0.0025895137353562996,45,0.0034526849804750667,60.0,0,0.005557021991914533,4,0.005557021991914533,4.0,4096
+aten::nll_loss_nd,0.0002877237483729222,5,0.07831840430710943,1361.0,0,0.0,0,0.0041677664939359,3.0,1024
+aten::nll_loss,0.0008631712451187667,15,0.07803068055873649,1356.0,0,0.0,0,0.0041677664939359,3.0,1024
+aten::nll_loss_forward,0.0020716109882850395,36,0.07716750931361774,1341.0,0,0.0041677664939359,3,0.0041677664939359,3.0,1024
+"void at::native::(anonymous namespace)::fused_dropout_kernel_vec<float, float, unsigned int, 1, 4, bool>(at::cuda::detail::TensorInfo<float, unsigned int>, at::cuda::detail::TensorInfo<float, unsigned int>, at::cuda::detail::TensorInfo<bool, unsigned int>, unsigned int, float, at::PhiloxCudaState)",0.0,0,0.0,0.0,0,0.009724788485850433,7,0.004862394242925216,3.5,0
+"std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, float, float, float, float, false, true, true, false, 7, false, cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float> >(cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float>)",0.0,0,0.0,0.0,0,0.208388324696795,150,0.1041941623483975,75.0,0
+"void (anonymous namespace)::softmax_warp_forward<float, float, float, 10, true, false>(float*, float const*, int, int, int, bool const*, int, bool)",0.0,0,0.0,0.0,0,0.005557021991914533,4,0.005557021991914533,4.0,0
+"void at::native::(anonymous namespace)::nll_loss_forward_reduce_cuda_kernel_2d<float, float, long>(float*, float*, float*, long*, float*, bool, long, long, long, long)",0.0,0,0.0,0.0,0,0.0041677664939359,3,0.0041677664939359,3.0,0
+aten::zeros,0.0013810739921900266,24,0.0010933502438171044,19.0,8,0.0,0,0.0,0.0,0
+aten::zero_,0.014040918920598604,244,0.0011508949934916888,20.0,0,0.0,0,0.04114479981684665,29.616438356164384,0
+Optimizer.zero_grad#Adam.zero_grad,0.002992326983078391,52,0.00310741648242756,54.0,-4,0.0,0,0.0,0.0,0
+aten::ones_like,0.0002877237483729222,5,0.0033375954811258974,58.0,0,0.0,0,0.0027785109959572664,2.0,512
+aten::fill_,0.029635546082410986,515,0.001001438490864643,17.40277777777778,0,3.006348897625762,2164,0.041754845800357814,30.055555555555557,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<float>, at::detail::Array<char*, 1> >(int, at::native::FillFunctor<float>, at::detail::Array<char*, 1>)",0.0,0,0.0,0.0,0,3.006348897625762,2164,0.041754845800357814,30.055555555555557,0
+autograd::engine::evaluate_function: NllLossBackward0,0.001956521488935871,34,0.016572887906280316,288.0,0,0.0,0,0.006946277489893167,5.0,3584
+NllLossBackward0,0.002129155737959624,37,0.014616366417344448,254.0,0,0.0,0,0.006946277489893167,5.0,4096
+aten::nll_loss_backward,0.004546035224292171,79,0.012487210679384823,217.0,0,0.0041677664939359,3,0.006946277489893167,5.0,4096
+"void at::native::(anonymous namespace)::nll_loss_backward_reduce_cuda_kernel_2d<float, long>(float*, float*, long*, float*, float*, bool, int, int, long, long)",0.0,0,0.0,0.0,0,0.0041677664939359,3,0.0041677664939359,3.0,0
+autograd::engine::evaluate_function: LogSoftmaxBackward0,0.0006329922464204288,11,0.004833758972665093,84.0,0,0.0,0,0.006946277489893167,5.0,-4096
+LogSoftmaxBackward0,0.0013810739921900266,24,0.004200766726244664,73.0,0,0.0,0,0.006946277489893167,5.0,4096
+aten::_log_softmax_backward_data,0.0020140662386104553,35,0.0028196927340546378,49.0,0,0.006946277489893167,5,0.006946277489893167,5.0,4096
+"void (anonymous namespace)::softmax_warp_backward<float, float, float, 10, true, false>(float*, float const*, float const*, int, int, int, bool const*)",0.0,0,0.0,0.0,0,0.006946277489893167,5,0.006946277489893167,5.0,0
+autograd::engine::evaluate_function: AddmmBackward0,0.004430945724943002,77,0.04010869052318535,697.0,0,0.0,0,0.886345007710368,638.0,494534656
+AddmmBackward0,0.003855498228197157,67,0.03540920263309429,615.3333333333334,0,0.0,0,0.8766202192245175,631.0,494667776
+aten::mm,0.023765981615603376,413,0.01633311811596955,283.8333333333333,0,2.629860657673553,1893,0.43831010961225875,315.5,494667776
+"std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, float, float, float, float, false, true, false, false, 7, false, cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float> >(cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float>)",0.0,0,0.0,0.0,0,0.04584543143329489,33,0.04584543143329489,33.0,0
+volta_sgemm_128x32_nn,0.0,0,0.0,0.0,0,1.3781414539948043,992,0.45938048466493475,330.6666666666667,0
+aten::sum,0.03274296256483855,569,0.0027909203592173457,48.5,0,0.2875758880815771,207,0.017973493005098568,12.9375,54272
+"void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",0.0,0,0.0,0.0,0,0.0291743654575513,21,0.009724788485850433,7.0,0
+aten::view,0.0007480817457695977,13,0.00024936058192319925,4.333333333333333,0,0.0,0,0.0,0.0,0
+autograd::engine::evaluate_function: torch::autograd::AccumulateGrad,0.008631712451187667,150,0.0006959318163770056,12.09375,0,0.0,0,0.0,0.0,0
+torch::autograd::AccumulateGrad,0.0059271092164821975,103,0.0004225942554227295,7.34375,0,0.0,0,0.0,0.0,0
+aten::detach,0.002762147984380053,48,0.00024096863926232232,4.1875,0,0.0,0,0.0,0.0,0
+detach,0.0049488484720142615,86,0.00015465151475044567,2.6875,0,0.0,0,0.0,0.0,0
+autograd::engine::evaluate_function: TBackward0,0.0007480817457695977,13,0.0006713554128701518,11.666666666666666,0,0.0,0,0.0,0.0,0
+TBackward0,0.00034526849804750664,6,0.00042199483094695255,7.333333333333333,0,0.0,0,0.0,0.0,0
+autograd::engine::evaluate_function: NativeDropoutBackward0,0.0009207159947933511,16,0.0038267258533598654,66.5,0,0.0,0,0.0034731387449465833,2.5,-8192
+NativeDropoutBackward0,0.0012659844928408577,22,0.0033663678559631895,58.5,0,0.0,0,0.0034731387449465833,2.5,32768
+aten::native_dropout_backward,0.0023593347366579623,41,0.002733375609542761,47.5,0,0.006946277489893167,5,0.0034731387449465833,2.5,32768
+"void at::native::vectorized_elementwise_kernel<4, at::native::(anonymous namespace)::masked_scale_kernel<bool, float, float>(at::Tensor&, at::Tensor const&, at::Tensor const&, float)::{lambda(float, bool)#1}, at::detail::Array<char*, 3> >(int, at::native::(anonymous namespace)::masked_scale_kernel<bool, float, float>(at::Tensor&, at::Tensor const&, at::Tensor const&, float)::{lambda(float, bool)#1}, at::detail::Array<char*, 3>)",0.0,0,0.0,0.0,0,0.006946277489893167,5,0.0034731387449465833,2.5,0
+autograd::engine::evaluate_function: ReluBackward0,0.00713554895964847,124,0.002581841102066355,44.86666666666667,0,0.0,0,0.028618663258359846,20.6,-54943744
+ReluBackward0,0.004200766726244664,73,0.002106137838089791,36.6,0,0.0,0,0.028618663258359846,20.6,55205888
+aten::threshold_backward,0.017551148650748253,305,0.001826086723006813,31.733333333333334,0,0.42927994887539767,309,0.028618663258359846,20.6,55205888
+"void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, float, at::native::(anonymous namespace)::threshold_kernel_impl<float>(at::TensorIteratorBase&, float, float)::{lambda(float, float)#1}>, at::detail::Array<char*, 3> >(int, at::native::BinaryFunctor<float, float, float, at::native::(anonymous namespace)::threshold_kernel_impl<float>(at::TensorIteratorBase&, float, float)::{lambda(float, float)#1}>, at::detail::Array<char*, 3>)",0.0,0,0.0,0.0,0,0.42927994887539767,309,0.028618663258359846,20.6,0
+cudaStreamGetCaptureInfo,0.00017263424902375332,3,2.1579281127969165e-05,0.375,0,0.0,0,0.0,0.0,0
+cudaEventQuery,0.0005179027470712599,9,0.00025895137353562994,4.5,0,0.0,0,0.0,0.0,0
+"void gemv2N_kernel<int, int, float, float, float, float, 128, 1, 2, 2, 1, false, cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float> >(cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float>)",0.0,0,0.0,0.0,0,0.18477098123115823,133,0.18477098123115823,133.0,0
+"void splitKreduce_kernel<32, 16, int, float, float, float, float, true, false, false>(cublasSplitKParams<float>, float const*, float const*, float*, float const*, float const*, float const*, float const*, float*, void*, long, float*, int*)",0.0,0,0.0,0.0,0,0.023617343465636764,17,0.011808671732818382,8.5,0
+"std::enable_if<true, void>::type internal::gemvx::kernel<int, int, float, float, float, float, true, true, false, false, 8, false, cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float> >(cublasGemvParams<cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float const>, cublasGemvTensorStridedBatched<float>, float>)",0.0,0,0.0,0.0,0,0.9974854475486585,718,0.9974854475486585,718.0,0
+autograd::engine::evaluate_function: ReshapeAliasBackward0,0.00034526849804750664,6,0.0017263424902375334,30.0,0,0.0,0,0.0,0.0,0
+ReshapeAliasBackward0,0.00034526849804750664,6,0.0013810739921900266,24.0,0,0.0,0,0.0,0.0,0
+autograd::engine::evaluate_function: AdaptiveAvgPool2DBackward0,0.0006329922464204288,11,0.005581840718434691,97.0,0,0.0,0,0.0125032994818077,9.0,-100352
+AdaptiveAvgPool2DBackward0,0.0009782607444679355,17,0.0049488484720142615,86.0,0,0.0,0,0.0125032994818077,9.0,100352
+aten::_adaptive_avg_pool2d_backward,0.0009207159947933511,16,0.003970587727546326,69.0,0,0.009724788485850433,7,0.0125032994818077,9.0,100352
+aten::zeros_like,0.01335038192450359,232,0.003076430847987399,53.46153846153846,0,0.0,0,0.04439205645079417,31.953846153846154,1108994048
+autograd::engine::evaluate_function: MaxPool2DWithIndicesBackward0,0.00310741648242756,54,0.004465472574747753,77.6,0,0.0,0,0.08085466998235646,58.2,5924864
+MaxPool2DWithIndicesBackward0,0.0020140662386104553,35,0.0038439892782622404,66.8,0,0.0,0,0.08085466998235646,58.2,24485888
+aten::max_pool2d_with_indices_backward,0.007365727958346809,128,0.0034411760305401496,59.8,0,0.3417568525027438,246,0.08085466998235646,58.2,24485888
+autograd::engine::evaluate_function: ConvolutionBackward0,0.012659844928408577,220,0.5481978445153258,9526.461538461539,0,0.0,0,0.6900325192652335,496.6923076923077,34603008
+ConvolutionBackward0,0.004258311475919248,74,0.5472240102900636,9509.538461538461,0,0.0,0,0.6900325192652335,496.6923076923077,96026624
+aten::convolution_backward,0.9576597240844342,16642,0.5468964478688391,9503.846153846154,0,8.712021227824009,6271,0.6900325192652335,496.6923076923077,96026624
+"void at::native::(anonymous namespace)::atomic_adaptive_average_gradinput<float>(float*, float*, int, int, int, int)",0.0,0,0.0,0.0,0,0.009724788485850433,7,0.009724788485850433,7.0,0
+"void at::native::(anonymous namespace)::max_pool_backward_nchw<float, float>(float const*, long const*, int, long, long, long, int, int, int, int, int, int, int, int, int, int, float*)",0.0,0,0.0,0.0,0,0.3417568525027438,246,0.06835137050054876,49.2,0
+"void cudnn::ops::scalePackedTensor_kernel<float, float>(long, float*, float)",0.0,0,0.0,0.0,0,0.0125032994818077,9,0.0041677664939359,3.0,0
+"void cudnn::detail::dgrad_engine<float, 128, 6, 7, 3, 3, 5, false>(int, int, int, float const*, int, float const*, int, float*, kernel_grad_params, unsigned long long, int, unsigned long long, int, float, int, int, int)",0.0,0,0.0,0.0,0,0.9377474611355775,675,0.3125824870451925,225.0,0
+"void wgrad_alg0_engine<float, 128, 6, 8, 3, 3, 5, false, 512>(int, int, int, float const*, int, float*, float const*, kernel_grad_params, unsigned long long, int, float, int, int, int, int)",0.0,0,0.0,0.0,0,0.8432780872730303,607,0.2810926957576768,202.33333333333334,0
+"void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4> >(at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, float, 4>)",0.0,0,0.0,0.0,0,0.25840152262402577,186,0.019877040201848137,14.307692307692308,0
+"void cudnn::winograd_nonfused::winogradWgradData4x4<float, float>(cudnn::winograd_nonfused::WinogradDataParams<float, float>)",0.0,0,0.0,0.0,0,0.3778774954501882,272,0.041986388383354244,30.22222222222222,0
+"void cudnn::winograd_nonfused::winogradWgradDelta4x4<float, float>(cudnn::winograd_nonfused::WinogradDeltaParams<float, float>)",0.0,0,0.0,0.0,0,0.49179644628443614,354,0.05464404958715958,39.333333333333336,0
+volta_sgemm_64x64_nt,0.0,0,0.0,0.0,0,1.7893610813964795,1288,0.1988178979329422,143.11111111111111,0
+"void cudnn::winograd_nonfused::winogradWgradOutput4x4<float, float>(cudnn::winograd_nonfused::WinogradWgradOutputParams<float, float>)",0.0,0,0.0,0.0,0,0.8002111668356928,576,0.08891235187063252,64.0,0
+[memory],0.0,0,0.0,0.0,0,0.0,0,0.0,0.0,-512
+Optimizer.step#Adam.step,0.20531966683891728,3568,0.7998144757270491,13899.0,124,0.0,0,31.35549658937775,22570.0,1108893696
+"void wgrad_alg0_engine<float, 128, 5, 5, 3, 3, 3, false, 512>(int, int, int, float const*, int, float*, float const*, kernel_grad_params, unsigned long long, int, float, int, int, int, int)",0.0,0,0.0,0.0,0,0.1166974618302052,84,0.1166974618302052,84.0,0
+aten::lift_fresh,5.7544749674584444e-05,1,1.7982734273307639e-06,0.03125,0,0.0,0,0.0,0.0,0
+aten::detach_,0.002992326983078391,52,9.351021822119971e-05,1.625,0,0.0,0,0.0,0.0,0
+detach_,0.0,0,0.0,0.0,0,0.0,0,0.0,0.0,0
+aten::_to_copy,0.008228899203465576,143,0.00048193727852464464,8.375,128,0.0,0,0.0,0.0,0
+aten::copy_,0.0049488484720142615,86,0.00015465151475044567,2.6875,0,0.0,0,0.0,0.0,0
+aten::mul_,0.03682863979173404,640,0.0010744683728301314,18.671875,0,5.8015309595587725,4176,0.09064892124310582,65.25,0
+aten::addcmul_,0.019737849138382463,343,0.0010304106738605275,17.90625,0,4.205276392381323,3027,0.13141488726191633,94.59375,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> >, at::detail::Array<char*, 2> >(int, at::native::AUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> >, at::detail::Array<char*, 2>)",0.0,0,0.0,0.0,0,5.8015309595587725,4176,0.09064892124310582,65.25,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, at::detail::Array<char*, 3> >(int, at::native::CUDAFunctor_add<float>, at::detail::Array<char*, 3>)",0.0,0,0.0,0.0,0,4.220558202859088,3038,0.1318924438393465,94.9375,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::addcmul_cuda_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float, float)#1}, at::detail::Array<char*, 4> >(int, at::native::addcmul_cuda_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float, float)#1}, at::detail::Array<char*, 4>)",0.0,0,0.0,0.0,0,4.205276392381323,3027,0.13141488726191633,94.59375,0
+aten::item,0.004085677226895495,71,0.027384325723929515,475.8787878787879,0,0.0,0,8.419730290779595e-05,0.06060606060606061,0
+aten::_local_scalar_dense,0.0011508949934916888,20,0.027260517323114502,473.72727272727275,0,0.0027785109959572664,2,8.419730290779595e-05,0.06060606060606061,0
+aten::sqrt,0.027621479843800534,480,0.00223705214359947,38.875,0,2.891040691293536,2081,0.090345021602923,65.03125,556314624
+"void at::native::vectorized_elementwise_kernel<4, at::native::sqrt_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2> >(int, at::native::sqrt_kernel_cuda(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(float)#1}, at::detail::Array<char*, 2>)",0.0,0,0.0,0.0,0,2.891040691293536,2081,0.090345021602923,65.03125,0
+aten::div,0.028829919586966804,501,0.0025301707122543844,43.96875,0,2.882705158305664,2075,0.090084536197052,64.84375,553955328
+"void at::native::vectorized_elementwise_kernel<4, at::native::BUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> >, at::detail::Array<char*, 2> >(int, at::native::BUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> >, at::detail::Array<char*, 2>)",0.0,0,0.0,0.0,0,2.882705158305664,2075,0.090084536197052,64.84375,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctorOnSelf_add<float>, at::detail::Array<char*, 2> >(int, at::native::CUDAFunctorOnSelf_add<float>, at::detail::Array<char*, 2>)",0.0,0,0.0,0.0,0,2.867423347827899,2064,0.08960697961962184,64.5,0
+aten::addcdiv_,0.019680304388707878,342,0.0010394020409971814,18.0625,0,5.551464969922618,3996,0.1734832803100818,124.875,0
+"void at::native::vectorized_elementwise_kernel<4, at::native::addcdiv_cuda_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float, float)#1}, at::detail::Array<char*, 4> >(int, at::native::addcdiv_cuda_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float, float)#1}, at::detail::Array<char*, 4>)",0.0,0,0.0,0.0,0,5.551464969922618,3996,0.1734832803100818,124.875,0
+cudaMemcpyAsync,0.8979282739222155,15604,0.8979282739222155,15604.0,0,0.0,0,0.0,0.0,0
+Memcpy DtoH (Device -> Pageable),0.0,0,0.0,0.0,0,0.0027785109959572664,2,0.0027785109959572664,2.0,0
+cudaStreamSynchronize,0.0005179027470712599,9,0.0005179027470712599,9.0,0,0.0,0,0.0,0.0,0
+cudaDeviceSynchronize,0.0006905369960950133,12,0.0006905369960950133,12.0,0,0.0,0,0.0,0.0,0
